@@ -371,7 +371,7 @@ void VL_GetColor	(int color, int *red, int *green, int *blue)
 void VL_SetPalette (byte far *palette)
 {
 	int	i;
-
+	return;
 //	outportb (PEL_WRITE_ADR,0);
 //	for (i=0;i<768;i++)
 //		outportb(PEL_DATA,*palette++);
@@ -451,7 +451,7 @@ void VL_FadeOut (int start, int end, int red, int green, int blue, int steps)
 {
 	int		i,j,orig,delta;
 	byte	far *origptr, far *newptr;
-
+	return;
 	VL_WaitVBL(1);
 	VL_GetPalette (&palette1[0][0]);
 	_fmemcpy (palette2,palette1,768);
@@ -500,7 +500,7 @@ void VL_FadeOut (int start, int end, int red, int green, int blue, int steps)
 void VL_FadeIn (int start, int end, byte far *palette, int steps)
 {
 	int		i,j,delta;
-
+	return;
 	VL_WaitVBL(1);
 	VL_GetPalette (&palette1[0][0]);
 	_fmemcpy (&palette2[0][0],&palette1[0][0],sizeof(palette1));
@@ -792,6 +792,7 @@ void VL_MemToScreen (byte far *source, int width, int height, int x, int y)
 {
 	byte    far *screen,far *dest,mask;
 	int		plane;
+	return;
 
 	width>>=2;
 	dest = MK_FP(SCREENSEG,bufferofs+ylookup[y]+(x>>2) );
@@ -829,6 +830,7 @@ void VL_MaskedToScreen (byte far *source, int width, int height, int x, int y)
 	byte	far *maskptr;
 	int		plane;
 
+	return;
 	width>>=2;
 	dest = MK_FP(SCREENSEG,bufferofs+ylookup[y]+(x>>2) );
 //	mask = 1 << (x&3);

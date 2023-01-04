@@ -1364,6 +1364,12 @@ think:
 */
 long funnyticount;
 
+void SetCGA(void)
+{
+	asm	mov	ax,0x0300
+	asm	int 0x10
+	exit(0);
+}
 
 void PlayLoop (void)
 {
@@ -1384,7 +1390,7 @@ void PlayLoop (void)
 
 	if (demoplayback)
 		IN_StartAck ();
-
+	
 	do
 	{
 		if (virtualreality)

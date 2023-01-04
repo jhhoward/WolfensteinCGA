@@ -26,7 +26,7 @@
 	int				XMSProtectPage = -1;
 
 //	File specific variables
-	char			PageFileName[13] = {"VSWAP."};
+	char			PageFileName[13] = {"CSWAP."};
 	int				PageFile = -1;
 	word			ChunksInFile;
 	word			PMSpriteStart,PMSoundStart;

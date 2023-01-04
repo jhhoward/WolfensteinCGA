@@ -172,6 +172,8 @@ void VL_MungePic (byte far *source, unsigned width, unsigned height)
 	unsigned	x,y,plane,size,pwidth;
 	byte		_seg *temp, far *dest, far *srcline;
 
+	return;
+	
 	size = width*height;
 
 	if (width&3)
@@ -290,12 +292,14 @@ int VW_MarkUpdateBlock (int x1, int y1, int x2, int y2)
 
 void VWB_DrawTile8 (int x, int y, int tile)
 {
+	return;
 	if (VW_MarkUpdateBlock (x,y,x+7,y+7))
 		LatchDrawChar(x,y,tile);
 }
 
 void VWB_DrawTile8M (int x, int y, int tile)
 {
+	return;
 	if (VW_MarkUpdateBlock (x,y,x+7,y+7))
 		VL_MemToScreen (((byte far *)grsegs[STARTTILE8M])+tile*64,8,8,x,y);
 }
@@ -305,6 +309,7 @@ void VWB_DrawPic (int x, int y, int chunknum)
 {
 	int	picnum = chunknum - STARTPICS;
 	unsigned width,height;
+	return;
 
 	x &= ~7;
 
@@ -320,6 +325,7 @@ void VWB_DrawPic (int x, int y, int chunknum)
 void VWB_DrawPropString	 (char far *string)
 {
 	int x;
+	return;
 	x=px;
 	VW_DrawPropString (string);
 	VW_MarkUpdateBlock(x,py,px-1,py+bufferheight-1);
@@ -328,24 +334,31 @@ void VWB_DrawPropString	 (char far *string)
 
 void VWB_Bar (int x, int y, int width, int height, int color)
 {
+	return;
 	if (VW_MarkUpdateBlock (x,y,x+width,y+height-1) )
 		VW_Bar (x,y,width,height,color);
 }
 
 void VWB_Plot (int x, int y, int color)
 {
+	return;
+
 	if (VW_MarkUpdateBlock (x,y,x,y))
 		VW_Plot(x,y,color);
 }
 
 void VWB_Hlin (int x1, int x2, int y, int color)
 {
+	return;
+
 	if (VW_MarkUpdateBlock (x1,y,x2,y))
 		VW_Hlin(x1,x2,y,color);
 }
 
 void VWB_Vlin (int y1, int y2, int x, int color)
 {
+	return;
+
 	if (VW_MarkUpdateBlock (x,y1,x,y2))
 		VW_Vlin(y1,y2,x,color);
 }
@@ -375,7 +388,7 @@ void VW_UpdateScreen (void)
 void LatchDrawPic (unsigned x, unsigned y, unsigned picnum)
 {
 	unsigned wide, height, source;
-
+	return;
 	wide = pictable[picnum-STARTPICS].width;
 	height = pictable[picnum-STARTPICS].height;
 	source = latchpics[2+picnum-LATCHPICS_LUMP_START];
@@ -399,7 +412,7 @@ void LoadLatchMem (void)
 	int	i,j,p,m,width,height,start,end;
 	byte	far *src;
 	unsigned	destoff;
-
+	return;
 //
 // tile 8s
 //

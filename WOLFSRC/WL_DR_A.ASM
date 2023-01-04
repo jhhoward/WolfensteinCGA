@@ -3,6 +3,7 @@
 	P286
 
 SCREENSEG	=	0a000h
+;SCREENSEG	=	0b800h
 
 FINEANGLES	=	3600
 DEG90		=	900
@@ -516,7 +517,10 @@ hithoriz:
 
 nextpix:
 	mov	ax,[pixx]
-	inc	ax
+	;inc	ax
+	;jh_start
+	add ax, 4
+	;jh_end
 	mov	[pixx],ax
 	cmp	ax,[viewwidth]
 	jge	done

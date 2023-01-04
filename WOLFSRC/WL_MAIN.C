@@ -724,9 +724,13 @@ void SetupWalls (void)
 ==========================
 */
 
+extern memptr cgabackbuffer;
+
 void SignonScreen (void)                        // VGA version
 {
 	unsigned        segstart,seglength;
+
+	MM_GetPtr (&cgabackbuffer,0x4000);
 
 	VL_SetVGAPlaneMode ();
 	VL_TestPaletteSet ();
@@ -1282,7 +1286,6 @@ boolean SetViewSize (unsigned width, unsigned height)
 	centerx = viewwidth/2-1;
 	shootdelta = viewwidth/10;
 	screenofs = ((200-STATUSLINES-viewheight)/2*SCREENWIDTH+(320-viewwidth)/8);
-
 //
 // calculate trace angles and projection constants
 //

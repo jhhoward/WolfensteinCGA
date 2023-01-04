@@ -110,6 +110,9 @@ int		horizwall[MAXWALLTILES],vertwall[MAXWALLTILES];
 =============================================================================
 */
 
+memptr cgabackbuffer;
+unsigned cgabackbufferseg;
+
 
 void AsmRefresh (void);			// in WL_DR_A.ASM
 
@@ -399,7 +402,9 @@ unsigned	postwidth;
 
 void	near ScalePost (void)		// VGA version
 {
-	asm	mov	ax,SCREENSEG
+//	asm	mov	ax,SCREENSEG
+//	asm	mov	ax,0xb800;
+	asm mov ax,[cgabackbufferseg]
 	asm	mov	es,ax
 
 	asm	mov	bx,[postx]
@@ -426,19 +431,19 @@ heightok:
 
 	asm	mov	al,BYTE PTR [mapmasks1-1+bx]	// -1 because no widths of 0
 	asm	mov	dx,SC_INDEX+1
-	asm	out	dx,al						// set bit mask register
+	//asm	out	dx,al						// set bit mask register
 	asm	lds	si,DWORD PTR [postsource]
 	asm	call DWORD PTR [bp]				// scale the line of pixels
 
 	asm	mov	al,BYTE PTR [ss:mapmasks2-1+bx]   // -1 because no widths of 0
 	asm	or	al,al
-	asm	jz	nomore
-
+	;asm	jz	nomore
+	asm jmp nomore
 	//
 	// draw a second byte for vertical strips that cross two bytes
 	//
 	asm	inc	di
-	asm	out	dx,al						// set bit mask register
+	//asm	out	dx,al						// set bit mask register
 	asm	call DWORD PTR [bp]				// scale the line of pixels
 
 	asm	mov	al,BYTE PTR [ss:mapmasks3-1+bx]	// -1 because no widths of 0
@@ -448,7 +453,7 @@ heightok:
 	// draw a third byte for vertical strips that cross three bytes
 	//
 	asm	inc	di
-	asm	out	dx,al						// set bit mask register
+	//asm	out	dx,al						// set bit mask register
 	asm	call DWORD PTR [bp]				// scale the line of pixels
 
 
@@ -1325,6 +1330,162 @@ void WallRefresh (void)
 
 //==========================================================================
 
+int in_cga = 0;
+void SwitchCGA()
+{
+	cgabackbufferseg = FP_SEG(cgabackbuffer);
+	in_cga = 1;
+	asm mov ax, 0x0005
+	asm int 0x10
+	asm mov ax, 0x1000
+	asm mov bx, 0x3c02
+	asm int 0x10
+	asm mov bx, 0x3f03
+	asm int 0x10
+	asm mov bx, 0x3b01
+	asm int 0x10
+	
+	{
+		unsigned char far* ptr = cgabackbuffer;
+		int ycount = 80;
+		int xcount = 80;
+		
+		while(ycount)
+		{
+			xcount = 80;
+			while(xcount)
+			{
+				*ptr++ = 0x11;
+				xcount--;
+			}
+			xcount = 80;
+			while(xcount)
+			{
+				*ptr++ = 0x44;
+				xcount--;
+			}
+			ycount--;
+		}
+		
+		ycount = 40 * 80;
+		while(ycount)
+		{
+			*ptr++ = 0;
+			ycount--;
+		}
+	}
+}
+
+void CGAClearScreen()
+{
+	/*
+	unsigned char far* ptr = cgabackbuffer;
+	int count = 0x4000;
+	while(count--)
+	{
+		*ptr++ = 0x55;
+		*ptr++ = 0xaa;
+	}*/
+	
+/*	
+	asm	mov	es, [cgabackbufferseg]
+	asm	mov	di, 0
+	//asm	xor	ax,ax
+	asm mov ax, 0x3333
+	asm	mov	cx, 0x2000
+	asm	rep stosw
+	*/
+	
+	//
+	// clear the screen
+	//
+	asm	mov	dx,80
+	asm	mov	ax,[viewwidth]
+	asm	shr	ax,2
+	asm	sub	dx,ax					// dx = 40-viewwidth/2
+
+	asm	mov	bx,[viewwidth]
+	asm	shr	bx,3					// bl = viewwidth/8
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm	shr	bh,2					// quarter height
+
+	asm	mov	es,[cgabackbufferseg]
+	asm	mov	di,[bufferofs]
+
+	toploop:
+	asm	mov	cl,bl
+	asm	mov	ax,0xc0c0
+	asm	rep	stosw
+	asm	add	di,dx
+
+	asm	mov	cl,bl
+	asm	mov	ax,0x0c0c
+	asm	rep	stosw
+	asm	add	di,dx
+
+	asm	dec	bh
+	asm	jnz	toploop
+
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm	shr	bh,2					// quarter height
+
+	bottomloop:
+	asm	mov	cl,bl
+	asm	mov	ax,0xcccc
+	asm	rep	stosw
+	asm	add	di,dx
+
+	asm	mov	cl,bl
+	asm	mov	ax,0x3333
+	asm	rep	stosw
+	asm	add	di,dx
+
+	asm	dec	bh
+	asm	jnz	bottomloop
+}
+
+void CGABlit()
+{
+	asm push ds
+	asm mov ds, [cgabackbufferseg]
+	asm mov si, 0
+	asm mov di, 0
+
+	asm mov dx, 100
+	asm mov ax, 0xb800
+	asm mov bx, 0xba00
+
+blitlines:
+	asm mov cx, 80
+	asm mov es, ax
+	asm rep movsb
+	asm sub di, 80
+	asm mov cx, 80
+	asm mov es, bx
+	asm rep movsb
+	
+	asm dec dx
+	asm jnz blitlines
+	
+	asm pop ds
+	
+	/*unsigned char far* dst = (unsigned char far*) MK_FP(0xb800, 0);
+	unsigned char far* src = cgabackbuffer;
+	int count = 0x2000;
+	while(count--)
+	{
+		*dst++ = *src++;
+	}
+
+	dst = (unsigned char far*) MK_FP(0xba00, 0);
+	count = 0x2000;
+	while(count--)
+	{
+		*dst++ = *src++;
+	}
+	*/
+}
+
 /*
 ========================
 =
@@ -1350,24 +1511,33 @@ asm	xor	ax,ax
 asm	mov	cx,2048							// 64*64 / 2
 asm	rep stosw
 
+	bufferofs = 0;
 	bufferofs += screenofs;
 
 //
 // follow the walls from there to the right, drawwing as we go
 //
-	VGAClearScreen ();
+	if(!in_cga)
+		SwitchCGA();
+	CGAClearScreen();
+
+	//VGAClearScreen ();
+
 
 	WallRefresh ();
-
+	CGABlit();
+	
 //
 // draw all the scaled images
 //
-	DrawScaleds();			// draw scaled stuff
-	DrawPlayerWeapon ();	// draw player's hands
+	//DrawScaleds();			// draw scaled stuff
+	//DrawPlayerWeapon ();	// draw player's hands
 
 //
 // show screen and time last cycle
 //
+
+/*
 	if (fizzlein)
 	{
 		FizzleFade(bufferofs,displayofs+screenofs,viewwidth,viewheight,20,false);
@@ -1376,9 +1546,9 @@ asm	rep stosw
 		lasttimecount = TimeCount = 0;		// don't make a big tic count
 
 	}
-
+*/
 	bufferofs -= screenofs;
-	displayofs = bufferofs;
+/*	displayofs = bufferofs;
 
 	asm	cli
 	asm	mov	cx,[displayofs]
@@ -1393,6 +1563,16 @@ asm	rep stosw
 	bufferofs += SCREENSIZE;
 	if (bufferofs > PAGE3START)
 		bufferofs = PAGE1START;
+*/
+	asm	cli
+	asm	mov	cx,[bufferofs]
+	asm	mov	dx,3d4h		// CRTC address register
+	asm	mov	al,0ch		// start address high register
+	asm	out	dx,al
+	asm	inc	dx
+	asm	mov	al,ch
+	asm	out	dx,al   	// set the high byte
+	asm	sti
 
 	frameon++;
 	PM_NextFrame();
