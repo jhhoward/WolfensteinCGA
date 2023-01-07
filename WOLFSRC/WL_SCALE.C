@@ -411,6 +411,7 @@ asm	mov	bx,[slinex]
 asm	mov	di,bx
 asm	shr	di,1						// X in bytes
 asm	shr	di,1						//
+asm	add	di,[bufferofs]
 asm	mov	ds,WORD PTR [linecmds+2]
 
 scalesingle:
@@ -682,62 +683,16 @@ void ScaleShape (int xcenter, int shapenum, unsigned height)
 		if ( !(slinewidth = comptable->width[srcx]) )
 			continue;
 
-		if (slinewidth == 1)
+		while(slinewidth-- && slinex >= 0)
 		{
 			slinex--;
-			if (slinex<viewwidth)
+			if(slinex < viewwidth && !(slinex & 3))
 			{
-				if (wallheight[slinex] >= height)
-					continue;		// obscured by closer wall
-				ScaleLine ();
+				if (wallheight[slinex] < height)
+				{
+					ScaleLine ();
+				}
 			}
-			continue;
-		}
-
-		//
-		// handle multi pixel lines
-		//
-		if (slinex>viewwidth)
-		{
-			slinex -= slinewidth;
-			slinewidth = viewwidth-slinex;
-			if (slinewidth<1)
-				continue;		// still off the right side
-		}
-		else
-		{
-			if (slinewidth>slinex)
-				slinewidth = slinex;
-			slinex -= slinewidth;
-		}
-
-
-		leftvis = (wallheight[slinex] < height);
-		rightvis = (wallheight[slinex+slinewidth-1] < height);
-
-		if (leftvis)
-		{
-			if (rightvis)
-				ScaleLine ();
-			else
-			{
-				while (wallheight[slinex+slinewidth-1] >= height)
-					slinewidth--;
-				ScaleLine ();
-			}
-		}
-		else
-		{
-			if (!rightvis)
-				continue;		// totally obscured
-
-			while (wallheight[slinex] >= height)
-			{
-				slinex++;
-				slinewidth--;
-			}
-			ScaleLine ();
-			break;			// the rest of the shape is gone
 		}
 	}
 
@@ -759,69 +714,19 @@ void ScaleShape (int xcenter, int shapenum, unsigned height)
 	}
 	slinewidth = 0;
 
-	while ( ++srcx <= stopx && (slinex+=slinewidth)<viewwidth)
+	while ( ++srcx <= stopx && slinex<viewwidth)
 	{
 		(unsigned)linecmds = *cmdptr++;
 		if ( !(slinewidth = comptable->width[srcx]) )
 			continue;
 
-		if (slinewidth == 1)
+		while(slinewidth-- && slinex<viewwidth)
 		{
-			if (slinex>=0 && wallheight[slinex] < height)
+			if(slinex >= 0 && !(slinex & 3) && wallheight[slinex] < height)
 			{
-				ScaleLine ();
+				ScaleLine();
 			}
-			continue;
-		}
-
-		//
-		// handle multi pixel lines
-		//
-		if (slinex<0)
-		{
-			if (slinewidth <= -slinex)
-				continue;		// still off the left edge
-
-			slinewidth += slinex;
-			slinex = 0;
-		}
-		else
-		{
-			if (slinex + slinewidth > viewwidth)
-				slinewidth = viewwidth-slinex;
-		}
-
-
-		leftvis = (wallheight[slinex] < height);
-		rightvis = (wallheight[slinex+slinewidth-1] < height);
-
-		if (leftvis)
-		{
-			if (rightvis)
-			{
-				ScaleLine ();
-			}
-			else
-			{
-				while (wallheight[slinex+slinewidth-1] >= height)
-					slinewidth--;
-				ScaleLine ();
-				break;			// the rest of the shape is gone
-			}
-		}
-		else
-		{
-			if (rightvis)
-			{
-				while (wallheight[slinex] >= height)
-				{
-					slinex++;
-					slinewidth--;
-				}
-				ScaleLine ();
-			}
-			else
-				continue;		// totally obscured
+			slinex++;
 		}
 	}
 }

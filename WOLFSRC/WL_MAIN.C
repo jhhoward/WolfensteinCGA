@@ -726,6 +726,7 @@ void SetupWalls (void)
 
 extern memptr cgabackbuffer;
 extern unsigned cgabackbufferseg;
+extern boolean usecomposite;
 
 void SignonScreen (void)                        // VGA version
 {
@@ -1157,6 +1158,11 @@ void InitGame (void)
 		virtualreality = true;
 	else
 		virtualreality = false;
+	
+	if (MS_CheckParm("composite"))
+	{
+		usecomposite = true;
+	}
 
 	MM_Startup ();                  // so the signon screen can be freed
 

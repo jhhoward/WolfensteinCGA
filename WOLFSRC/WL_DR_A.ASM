@@ -395,12 +395,8 @@ initvars:
 	mov	si,[focaltx]
 	add	si,[xtilestep]
 	mov	[xtile],si					; xtile = focaltx+xtilestep
-	shl	si,1
-	shl	si,1
-	shl	si,1
-	shl	si,1
-	shl	si,1
-	shl	si,1
+	mov cl,6
+	shl si,cl
 	add	si,dx						; xspot = (xtile<<6) + yinttile
 
 
@@ -545,10 +541,12 @@ hithoriz:
 
 nextpix:
 	mov	ax,[pixx]
-	;inc	ax
-	;jh_start
+;#ifdef WITH_VGA
+;	inc	ax
+;#else
+	; For CGA step 4 pixels at a time
 	add ax, 4
-	;jh_end
+;#endif
 	mov	[pixx],ax
 	cmp	ax,[viewwidth]
 	jge	done

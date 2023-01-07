@@ -400,10 +400,69 @@ long		postsource;
 unsigned	postx;
 unsigned	postwidth;
 
+#ifdef WITH_VGA
 void	near ScalePost (void)		// VGA version
 {
-//	asm	mov	ax,SCREENSEG
-//	asm	mov	ax,0xb800;
+	asm	mov	ax,SCREENSEG
+	asm	mov	es,ax
+
+	asm	mov	bx,[postx]
+	asm	shl	bx,1
+	asm	mov	bp,WORD PTR [wallheight+bx]		// fractional height (low 3 bits frac)
+	asm	and	bp,0xfff8				// bp = heightscaler*4
+	asm	shr	bp,1
+	asm	cmp	bp,[maxscaleshl2]
+	asm	jle	heightok
+	asm	mov	bp,[maxscaleshl2]
+heightok:
+	asm	add	bp,OFFSET fullscalefarcall
+	//
+	// scale a byte wide strip of wall
+	//
+	asm	mov	bx,[postx]
+	asm	mov	di,bx
+	asm	shr	di,2						// X in bytes
+	asm	add	di,[bufferofs]
+
+	asm	and	bx,3
+	asm	shl	bx,3						// bx = pixel*8+pixwidth
+	asm	add	bx,[postwidth]
+
+	asm	mov	al,BYTE PTR [mapmasks1-1+bx]	// -1 because no widths of 0
+	asm	mov	dx,SC_INDEX+1
+	asm	out	dx,al						// set bit mask register
+	asm	lds	si,DWORD PTR [postsource]
+	asm	call DWORD PTR [bp]				// scale the line of pixels
+
+	asm	mov	al,BYTE PTR [ss:mapmasks2-1+bx]   // -1 because no widths of 0
+	asm	or	al,al
+	asm	jz	nomore
+
+	//
+	// draw a second byte for vertical strips that cross two bytes
+	//
+	asm	inc	di
+	asm	out	dx,al						// set bit mask register
+	asm	call DWORD PTR [bp]				// scale the line of pixels
+
+	asm	mov	al,BYTE PTR [ss:mapmasks3-1+bx]	// -1 because no widths of 0
+	asm	or	al,al
+	asm	jz	nomore
+	//
+	// draw a third byte for vertical strips that cross three bytes
+	//
+	asm	inc	di
+	asm	out	dx,al						// set bit mask register
+	asm	call DWORD PTR [bp]				// scale the line of pixels
+
+
+nomore:
+	asm	mov	ax,ss
+	asm	mov	ds,ax
+}
+#else
+void	near ScalePost (void)		// CGA version
+{
 	asm mov ax,[cgabackbufferseg]
 	asm	mov	es,ax
 
@@ -426,21 +485,21 @@ heightok:
 	asm	shr	di,1						// 
 	asm	add	di,[bufferofs]
 
-	asm	and	bx,3
-	asm	shl	bx,1						// bx = pixel*8+pixwidth
-	asm	shl	bx,1						// 
-	asm	shl	bx,1						// 
-	asm	add	bx,[postwidth]
+	//asm	and	bx,3
+	//asm	shl	bx,1						// bx = pixel*8+pixwidth
+	//asm	shl	bx,1						// 
+	//asm	shl	bx,1						// 
+	//asm	add	bx,[postwidth]
 
-	asm	mov	al,BYTE PTR [mapmasks1-1+bx]	// -1 because no widths of 0
-	asm	mov	dx,SC_INDEX+1
+	//asm	mov	al,BYTE PTR [mapmasks1-1+bx]	// -1 because no widths of 0
+	//asm	mov	dx,SC_INDEX+1
 	//asm	out	dx,al						// set bit mask register
 	asm	lds	si,DWORD PTR [postsource]
 	asm	call DWORD PTR [bp]				// scale the line of pixels
 
-	asm	mov	al,BYTE PTR [ss:mapmasks2-1+bx]   // -1 because no widths of 0
-	asm	or	al,al
-	;asm	jz	nomore
+	//asm	mov	al,BYTE PTR [ss:mapmasks2-1+bx]   // -1 because no widths of 0
+	//asm	or	al,al
+	//asm	jz	nomore
 	asm jmp nomore
 	//
 	// draw a second byte for vertical strips that cross two bytes
@@ -464,6 +523,7 @@ nomore:
 	asm	mov	ax,ss
 	asm	mov	ds,ax
 }
+#endif
 
 void  FarScalePost (void)				// just so other files can call
 {
@@ -495,6 +555,7 @@ void HitVertWall (void)
 	}
 	wallheight[pixx] = CalcHeight();
 
+#if WITH_VGA
 	if (lastside==1 && lastintercept == xtile && lasttilehit == tilehit)
 	{
 		// in the same wall type as last time, so check for optimized draw
@@ -514,6 +575,7 @@ void HitVertWall (void)
 		}
 	}
 	else
+#endif
 	{
 	// new wall
 		if (lastside != -1)				// if not the first scaled post
@@ -541,6 +603,7 @@ void HitVertWall (void)
 		(unsigned)postsource = texture;
 
 	}
+
 }
 
 
@@ -567,6 +630,7 @@ void HitHorizWall (void)
 		texture = 0xfc0-texture;
 	wallheight[pixx] = CalcHeight();
 
+#if WITH_VGA
 	if (lastside==0 && lastintercept == ytile && lasttilehit == tilehit)
 	{
 		// in the same wall type as last time, so check for optimized draw
@@ -586,6 +650,7 @@ void HitHorizWall (void)
 		}
 	}
 	else
+#endif
 	{
 	// new wall
 		if (lastside != -1)				// if not the first scaled post
@@ -634,6 +699,7 @@ void HitHorizDoor (void)
 
 	wallheight[pixx] = CalcHeight();
 
+#if WITH_VGA
 	if (lasttilehit == tilehit)
 	{
 	// in the same door as last time, so check for optimized draw
@@ -653,6 +719,7 @@ void HitHorizDoor (void)
 		}
 	}
 	else
+#endif
 	{
 		if (lastside != -1)				// if not the first scaled post
 			ScalePost ();			// draw last post
@@ -702,6 +769,7 @@ void HitVertDoor (void)
 
 	wallheight[pixx] = CalcHeight();
 
+#if WITH_VGA
 	if (lasttilehit == tilehit)
 	{
 	// in the same door as last time, so check for optimized draw
@@ -721,6 +789,7 @@ void HitVertDoor (void)
 		}
 	}
 	else
+#endif
 	{
 		if (lastside != -1)				// if not the first scaled post
 			ScalePost ();			// draw last post
@@ -781,6 +850,7 @@ void HitHorizPWall (void)
 
 	wallheight[pixx] = CalcHeight();
 
+#if WITH_VGA
 	if (lasttilehit == tilehit)
 	{
 		// in the same wall type as last time, so check for optimized draw
@@ -800,6 +870,7 @@ void HitHorizPWall (void)
 		}
 	}
 	else
+#endif
 	{
 	// new wall
 		if (lastside != -1)				// if not the first scaled post
@@ -845,6 +916,7 @@ void HitVertPWall (void)
 
 	wallheight[pixx] = CalcHeight();
 
+#if WITH_VGA
 	if (lasttilehit == tilehit)
 	{
 		// in the same wall type as last time, so check for optimized draw
@@ -864,6 +936,7 @@ void HitVertPWall (void)
 		}
 	}
 	else
+#endif
 	{
 	// new wall
 		if (lastside != -1)				// if not the first scaled post
@@ -966,6 +1039,18 @@ unsigned vgaCeiling[]=
  0x1d1d,0xdede,0xdfdf,0xdede,0xdfdf,0xdede,0xe1e1,0xdcdc,0x2e2e,0x1d1d,0xdcdc
 #endif
 };
+
+unsigned rgbCgaCeilingFloor[]=
+{
+	0xc0c0, 0x0c0c, 0xcccc, 0x3333
+};
+
+unsigned compositeCgaCeilingFloor[] =
+{
+	0x8888, 0x8888, 0x5555, 0x5555
+};	
+
+unsigned* cgaCeilingFloor = rgbCgaCeilingFloor;
 
 /*
 =====================
@@ -1328,36 +1413,47 @@ void WallRefresh (void)
 	ypartialdown = viewy&(TILEGLOBAL-1);
 	ypartialup = TILEGLOBAL-ypartialdown;
 
+#if WITH_VGA
 	lastside = -1;			// the first pixel is on a new wall
+#else
+	lastside = 0;
+#endif
 	AsmRefresh ();
 	ScalePost ();			// no more optimization on last post
 }
 
 //==========================================================================
 
+extern boolean usecomposite;
+
 int in_cga = 0;
 void SwitchCGA()
 {
 	in_cga = 1;
 	
+	if(usecomposite)
+	{
+		asm mov ax, 0x0006
+		asm int 0x10
+		asm mov dx, 0x3d8
+		asm mov al, 0x1a
+		asm out dx, al
+	}
+	else
+	{
+		asm mov ax, 0x0005
+		asm int 0x10
+		asm mov ax, 0x1000
+		asm mov bx, 0x3c02
+		asm int 0x10
+		asm mov bx, 0x3f03
+		asm int 0x10
+		asm mov bx, 0x3b01
+		asm int 0x10
+	}
 	
-	asm mov ax, 0x0005
-	asm int 0x10
-	asm mov ax, 0x1000
-	asm mov bx, 0x3c02
-	asm int 0x10
-	asm mov bx, 0x3f03
-	asm int 0x10
-	asm mov bx, 0x3b01
-	asm int 0x10
+	cgaCeilingFloor = usecomposite ? compositeCgaCeilingFloor : rgbCgaCeilingFloor;
 	
-	/*
-	asm mov ax, 0x0006
-	asm int 0x10
-	asm mov dx, 0x3d8
-	asm mov al, 0x1a
-	asm out dx, al
-	*/
 	{
 		unsigned char far* ptr = cgabackbuffer;
 		int ycount = 80;
@@ -1387,27 +1483,23 @@ void SwitchCGA()
 			ycount--;
 		}
 	}
+	
+	{
+		unsigned char far* ptr = MK_FP(0xb800, 0);
+		int count = 0x4000;
+		while(count--)
+		{
+			*ptr++ = 0x0;
+		}
+	}
 }
 
 void CGAClearScreen()
 {
-	
-	unsigned char far* ptr = cgabackbuffer;
-	int count = 0x4000;
-	while(count--)
-	{
-		*ptr++ = 0x00;
-	//	*ptr++ = 0xaa;
-	}
-	
-/*	
-	asm	mov	es, [cgabackbufferseg]
-	asm	mov	di, 0
-	//asm	xor	ax,ax
-	asm mov ax, 0x3333
-	asm	mov	cx, 0x2000
-	asm	rep stosw
-	*/
+	unsigned ceiling1 = cgaCeilingFloor[0];
+	unsigned ceiling2 = cgaCeilingFloor[1];
+	unsigned floor1 = cgaCeilingFloor[2];
+	unsigned floor2 = cgaCeilingFloor[3];
 	
 	//
 	// clear the screen
@@ -1431,12 +1523,12 @@ void CGAClearScreen()
 
 	toploop:
 	asm	mov	cl,bl
-	asm	mov	ax,0x8888 //0xc0c0
+	asm	mov	ax, [ceiling1] //0x8888 //0xc0c0
 	asm	rep	stosw
 	asm	add	di,dx
 
 	asm	mov	cl,bl
-	asm	mov	ax,0x8888 //0x0c0c
+	asm	mov	ax, [ceiling2] //0x8888 //0x0c0c
 	asm	rep	stosw
 	asm	add	di,dx
 
@@ -1449,12 +1541,12 @@ void CGAClearScreen()
 
 	bottomloop:
 	asm	mov	cl,bl
-	asm	mov	ax,0x5555 //0xcccc
+	asm	mov	ax, [floor1] //0x5555 //0xcccc
 	asm	rep	stosw
 	asm	add	di,dx
 
 	asm	mov	cl,bl
-	asm	mov	ax,0x5555 //0x3333
+	asm	mov	ax, [floor2] // 0x5555 //0x3333
 	asm	rep	stosw
 	asm	add	di,dx
 
@@ -1464,44 +1556,44 @@ void CGAClearScreen()
 
 void CGABlit()
 {
+	asm mov dx, [viewheight]
+	asm shr dx, 1
+	asm mov si, [screenofs]
+	asm mov di, [screenofs]
+	
+	asm mov bx, [viewwidth]
+	asm mov cl, 2
+	asm shr bx, cl				// bx is number of bytes to copy
+	
+	asm mov ax, 80
+	asm sub ax, bx				// ax is the number of bytes to step to the next line
+	
 	asm push ds
 	asm mov ds, [cgabackbufferseg]
-	asm mov si, 0
-	asm mov di, 0
-
-	asm mov dx, 100
-	asm mov ax, 0xb800
-	asm mov bx, 0xba00
-
+	
 blitlines:
-	asm mov cx, 80
-	asm mov es, ax
+	asm mov cx, 0xb800
+	asm mov es, cx
+
+	asm mov cx, bx
 	asm rep movsb
-	asm sub di, 80
-	asm mov cx, 80
-	asm mov es, bx
+
+	asm sub di, bx
+	asm add si, ax
+
+	asm mov cx, 0xba00
+	asm mov es, cx
+	
+	asm mov cx, bx
 	asm rep movsb
+	
+	asm add di, ax
+	asm add si, ax
 	
 	asm dec dx
 	asm jnz blitlines
 	
 	asm pop ds
-	
-	/*unsigned char far* dst = (unsigned char far*) MK_FP(0xb800, 0);
-	unsigned char far* src = cgabackbuffer;
-	int count = 0x2000;
-	while(count--)
-	{
-		*dst++ = *src++;
-	}
-
-	dst = (unsigned char far*) MK_FP(0xba00, 0);
-	count = 0x2000;
-	while(count--)
-	{
-		*dst++ = *src++;
-	}
-	*/
 }
 
 /*
@@ -1532,7 +1624,7 @@ asm	mov	cx,2048							// 64*64 / 2
 asm	rep stosw
 
 	bufferofs = 0;
-	screenofs = 0;
+//	screenofs = 0;
 	bufferofs += screenofs;
 
 //
@@ -1550,23 +1642,13 @@ asm	rep stosw
 //
 // draw all the scaled images
 //
-	{
-		int x;
-		for(x = 0; x < MAXVIEWWIDTH; x++)
-		{
-			wallheight[x] = 0;
-		}
-	}
 	DrawScaleds();			// draw scaled stuff
 	DrawPlayerWeapon ();	// draw player's hands
 
 //
 // show screen and time last cycle
 //
-	//SimpleScaleShape(viewheight/2,SPR_STAT_17,viewheight);
 	CGABlit();
-
-	//SimpleScaleShape(viewheight/2,SPR_STAT_17,viewheight);
 
 /*
 	if (fizzlein)

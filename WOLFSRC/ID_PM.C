@@ -478,6 +478,8 @@ PML_ReadFromFile(byte far *buf,long offset,word length)
 		Quit("PML_ReadFromFile: Read failed");
 }
 
+extern boolean usecomposite;
+
 //
 //	PML_OpenPageFile() - Opens the page file and sets up the page info
 //
@@ -491,6 +493,11 @@ PML_OpenPageFile(void)
 	word			far *lengthptr;
 	PageListStruct	far *page;
 
+	if(usecomposite)
+	{
+		PageFileName[0] = 'X';
+	}
+	
 	PageFile = open(PageFileName,O_RDONLY + O_BINARY);
 	if (PageFile == -1)
 		Quit("PML_OpenPageFile: Unable to open page file");

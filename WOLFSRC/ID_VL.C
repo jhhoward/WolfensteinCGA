@@ -27,6 +27,8 @@ boolean		fastpalette;				// if true, use outsb to set
 
 byte		far	palette1[256][3],far palette2[256][3];
 
+boolean		usecomposite = false;
+
 //===========================================================================
 
 // asm
@@ -66,13 +68,14 @@ void	VL_Startup (void)
 =======================
 */
 
-static	char *ParmStrings[] = {"HIDDENCARD",""};
+static	char *ParmStrings[] = {"HIDDENCARD","COMPOSITE",""};
 
 void	VL_Startup (void)
 {
 	int i,videocard;
 
 	return;
+	
 	asm	cld;
 
 	videocard = VL_VideoID ();

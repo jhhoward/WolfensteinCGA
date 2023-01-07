@@ -225,7 +225,15 @@ extreme		dw	?
 	MACRO	COMMONEND
 @@fullexit:
 	pop	es
-	popa
+	;popa
+	pop di
+	pop si
+	pop bp
+	pop bx
+	pop dx 
+	pop cx
+	pop ax
+	;
 
 @@nosave:
 	mov	ax,[TimerDivisor]
@@ -287,7 +295,16 @@ extreme		dw	?
 
 	push ds
 	push es
-	pusha
+	
+	;pusha
+	push ax
+	push cx
+	push dx 
+	push bx
+	push bp
+	push si
+	push di
+	;
 
 	mov	ds,[cs:MyDS]
 
@@ -322,7 +339,15 @@ extreme		dw	?
 	call SDL_DigitizedDone
 
 @@donereg:
-	popa
+	;popa
+	pop di
+	pop si
+	pop bp
+	pop bx
+	pop dx 
+	pop cx
+	pop ax
+	;
 	pop	es
 	pop	ds
 
@@ -366,7 +391,15 @@ extreme		dw	?
 	jz	@@nosave
 
 @@dofull:
-	pusha
+	;pusha
+	push ax
+	push cx
+	push dx 
+	push bx
+	push bp
+	push si
+	push di
+	;
 	push es
 
 	cmp	[count_fx],5
@@ -514,7 +547,15 @@ extreme		dw	?
 	jz	@@nosave
 
 @@dofull:
-	pusha
+	;pusha
+	push ax
+	push cx
+	push dx 
+	push bx
+	push bp
+	push si
+	push di
+	;
 	push es
 
 	DOFX
