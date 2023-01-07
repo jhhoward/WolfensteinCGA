@@ -2,7 +2,7 @@
 ;	ID_SD_A.ASM
 ;	Id Sound Manager assembly stuff
 
-	.286C
+	.8086
 	IDEAL
 	MODEL	MEDIUM,C
 	JUMPS
