@@ -237,13 +237,15 @@ entry90:
 	mov	[BYTE cs:vertop],OP_JLE		; patch a jle in
 	mov	bx,DEG90-1
 	sub	bx,cx
-	shl	bx,2
+	shl	bx,1
+	shl	bx,1
 	mov	ax,[es:bx]
 	mov	dx,[es:bx+2]
 	mov	[WORD xstep],ax
 	mov	[WORD xstep+2],dx		; xstep = finetangent[DEG90-1-angle]
 	mov	bx,cx
-	shl	bx,2
+	shl	bx,1
+	shl	bx,1
 	mov	ax,[es:bx]
 	mov	dx,[es:bx+2]
 	neg	dx
@@ -271,7 +273,8 @@ not90:
 	mov	[BYTE cs:vertop],OP_JLE		; patch a jle in
 
 	mov	bx,cx
-	shl	bx,2
+	shl	bx,1
+	shl	bx,1
 	mov	ax,[es:bx-DEG90*4]
 	mov	dx,[es:bx+2-DEG90*4]
 	neg	dx
@@ -281,7 +284,8 @@ not90:
 	mov	[WORD xstep+2],dx		; xstep = -finetangent[angle-DEG90]
 	mov	bx,DEG180-1
 	sub	bx,cx
-	shl	bx,2
+	shl	bx,1
+	shl	bx,1
 	mov	ax,[es:bx]
 	mov	dx,[es:bx+2]
 	neg	dx
@@ -309,7 +313,8 @@ not180:
 
 	mov	bx,DEG270-1
 	sub	bx,cx
-	shl	bx,2
+	shl	bx,1
+	shl	bx,1
 	mov	ax,[es:bx]
 	mov	dx,[es:bx+2]
 	neg	dx
@@ -318,7 +323,8 @@ not180:
 	mov	[WORD xstep],ax
 	mov	[WORD xstep+2],dx		; xstep = -finetangent[DEG270-1-angle]
 	mov	bx,cx
-	shl	bx,2
+	shl	bx,1
+	shl	bx,1
 	mov	ax,[es:bx-DEG180*4]
 	mov	dx,[es:bx+2-DEG180*4]
 	mov	[WORD ystep],ax
@@ -345,14 +351,16 @@ entry360:
 	mov	[BYTE cs:vertop],OP_JGE		; patch a jge in
 
 	mov	bx,cx
-	shl	bx,2
+	shl	bx,1
+	shl	bx,1
 	mov	ax,[es:bx-DEG270*4]
 	mov	dx,[es:bx+2-DEG270*4]
 	mov	[WORD xstep],ax
 	mov	[WORD xstep+2],dx		; xstep = finetangent[angle-DEG270]
 	mov	bx,DEG360-1
 	sub	bx,cx
-	shl	bx,2
+	shl	bx,1
+	shl	bx,1
 	mov	ax,[es:bx]
 	mov	dx,[es:bx+2]
 	mov	[WORD ystep],ax
@@ -387,7 +395,12 @@ initvars:
 	mov	si,[focaltx]
 	add	si,[xtilestep]
 	mov	[xtile],si					; xtile = focaltx+xtilestep
-	shl	si,6
+	shl	si,1
+	shl	si,1
+	shl	si,1
+	shl	si,1
+	shl	si,1
+	shl	si,1
 	add	si,dx						; xspot = (xtile<<6) + yinttile
 
 
@@ -401,7 +414,12 @@ initvars:
 	add	bx,[ytilestep]
 	mov	bp,bx						; ytile = focalty+ytilestep
 	mov	di,dx
-	shl	di,6
+	shl	di,1
+	shl	di,1
+	shl	di,1
+	shl	di,1
+	shl	di,1
+	shl	di,1
 	add	di,bx						; yspot = (xinttile<<6) + ytile
 
 	mov	bx,[xtile]
@@ -450,7 +468,12 @@ passvert:
 	add	[WORD yintercept],ax		; yintercept += ystep
 	adc	dx,[WORD ystep+2]
 	mov	si,bx
-	shl	si,6
+	shl	si,1
+	shl	si,1
+	shl	si,1
+	shl	si,1
+	shl	si,1
+	shl	si,1
 	add	si,dx						; xspot = (xtile<<6)+yinttile
 	jmp	vertcheck
 
@@ -491,7 +514,12 @@ passhoriz:
 	add	[WORD xintercept],ax		; xintercept += xstep
 	adc	cx,[WORD xstep+2]
 	mov	di,cx
-	shl	di,6
+	shl	di,1
+	shl	di,1
+	shl	di,1
+	shl	di,1
+	shl	di,1
+	shl	di,1
 	add	di,bp						; yspot = (xinttile<<6)+ytile
 	jmp	horizcheck
 

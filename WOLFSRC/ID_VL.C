@@ -72,6 +72,7 @@ void	VL_Startup (void)
 {
 	int i,videocard;
 
+	return;
 	asm	cld;
 
 	videocard = VL_VideoID ();
@@ -114,6 +115,7 @@ void	VL_Shutdown (void)
 
 void	VL_SetVGAPlaneMode (void)
 {
+	return;
 asm	mov	ax,0x13
 asm	int	0x10
 	VL_DePlaneVGA ();
@@ -150,6 +152,7 @@ asm	int	0x10
 
 void VL_ClearVideo (byte color)
 {
+	return;
 asm	mov	dx,GC_INDEX
 asm	mov	al,GC_MODE
 asm	out	dx,al
@@ -191,7 +194,7 @@ asm	rep	stosw
 
 void VL_DePlaneVGA (void)
 {
-
+	return;
 //
 // change CPU addressing to non linear mode
 //
@@ -246,7 +249,7 @@ void VL_DePlaneVGA (void)
 void VL_SetLineWidth (unsigned width)
 {
 	int i,offset;
-
+	return;
 //
 // set wide virtual screen
 //
@@ -310,6 +313,7 @@ void VL_FillPalette (int red, int green, int blue)
 {
 	int	i;
 
+	return;
 	outportb (PEL_WRITE_ADR,0);
 	for (i=0;i<256;i++)
 	{
@@ -382,14 +386,14 @@ void VL_SetPalette (byte far *palette)
 	asm	mov	dx,PEL_DATA
 	asm	lds	si,[palette]
 
-	asm	test	[ss:fastpalette],1
-	asm	jz	slowset
+//	asm	test	[ss:fastpalette],1
+//	asm	jz	slowset
 //
 // set palette fast for cards that can take it
 //
-	asm	mov	cx,768
-	asm	rep outsb
-	asm	jmp	done
+//	asm	mov	cx,768
+//	asm	rep outsb
+//	asm	jmp	done
 
 //
 // set palette slowly for some video cards
@@ -862,15 +866,16 @@ void VL_MaskedToScreen (byte far *source, int width, int height, int x, int y)
 
 void VL_LatchToScreen (unsigned source, int width, int height, int x, int y)
 {
-	VGAWRITEMODE(1);
-	VGAMAPMASK(15);
+//	VGAWRITEMODE(1);
+//	VGAMAPMASK(15);
 
 asm	mov	di,[y]				// dest = bufferofs+ylookup[y]+(x>>2)
 asm	shl	di,1
 asm	mov	di,[WORD PTR ylookup+di]
 asm	add	di,[bufferofs]
 asm	mov	ax,[x]
-asm	shr	ax,2
+asm	shr	ax,1
+asm	shr	ax,1
 asm	add	di,ax
 
 asm	mov	si,[source]
@@ -878,7 +883,8 @@ asm	mov	ax,[width]
 asm	mov	bx,[linewidth]
 asm	sub	bx,ax
 asm	mov	dx,[height]
-asm	mov	cx,SCREENSEG
+//asm	mov	cx,SCREENSEG
+asm	mov	cx,0xb800
 asm	mov	ds,cx
 asm	mov	es,cx
 
@@ -892,7 +898,7 @@ asm	jnz	drawline
 asm	mov	ax,ss
 asm	mov	ds,ax
 
-	VGAWRITEMODE(0);
+//	VGAWRITEMODE(0);
 }
 
 

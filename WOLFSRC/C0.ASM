@@ -137,6 +137,7 @@ ENDIF
 ;
 ; 		IDsoft - Check to make sure that we're running on a 286 or better
 
+				jmp		@@Have286		; Skip 286 check
 				pushf					; Save original flags
 				xor		ax,ax			; Clear AX
 				push	ax

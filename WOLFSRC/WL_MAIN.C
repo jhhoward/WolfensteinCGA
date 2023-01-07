@@ -41,8 +41,8 @@
 */
 
 char            str[80],str2[20];
-int				tedlevelnum;
-boolean         tedlevel;
+int				tedlevelnum = 0;
+boolean         tedlevel = true;
 boolean         nospr;
 boolean         IsA386;
 int                     dirangle[9] = {0,ANGLES/8,2*ANGLES/8,3*ANGLES/8,4*ANGLES/8,
@@ -725,12 +725,14 @@ void SetupWalls (void)
 */
 
 extern memptr cgabackbuffer;
+extern unsigned cgabackbufferseg;
 
 void SignonScreen (void)                        // VGA version
 {
 	unsigned        segstart,seglength;
 
-	MM_GetPtr (&cgabackbuffer,0x4000);
+	MM_GetPtr (&cgabackbuffer,0x8000);
+	cgabackbufferseg = FP_SEG(cgabackbuffer);
 
 	VL_SetVGAPlaneMode ();
 	VL_TestPaletteSet ();

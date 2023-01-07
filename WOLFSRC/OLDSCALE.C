@@ -260,10 +260,12 @@ asm	mov	dx,SC_INDEX+1				// to set SC_MAPMASK
 
 asm	mov	bx,[slinex]
 asm	mov	di,bx
-asm	shr	di,2						// X in bytes
+asm	shr	di,1						// X in bytes
+asm	shr	di,1						// 
 asm	add	di,[bufferofs]
 asm	and	bx,3
-asm	shl	bx,3
+asm mov cl,3
+asm	shl	bx,cl
 asm	add	bx,[slinewidth]				// bx = (pixel*8+pixwidth)
 asm	mov	al,BYTE [mapmasks3-1+bx]	// -1 because pixwidth of 1 is first
 asm	mov	ds,WORD PTR [linecmds+2]

@@ -1,0 +1,1 @@
+c:\dosbox-x\dosbox-x.exe -conf dosbox-ide.conf

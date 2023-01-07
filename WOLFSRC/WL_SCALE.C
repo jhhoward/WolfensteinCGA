@@ -245,7 +245,8 @@ extern	unsigned	maskword;
 
 byte	mask1,mask2,mask3;
 
-
+#if WITH_VGA
+// VGA version
 void near ScaleLine (void)
 {
 asm	mov	cx,WORD PTR [linescale+2]
@@ -393,6 +394,56 @@ asm	jmp	scaletriple					// do the next segment
 
 }
 
+#else // CGA version
+
+extern	unsigned	cgabackbufferseg;
+extern	memptr		cgabackbuffer;
+
+void near ScaleLine (void)
+{
+asm	mov	cx,WORD PTR [linescale+2]
+asm	mov	es,cx						// segment of scaler
+asm mov dx,[cgabackbufferseg]
+
+asm	mov bp,WORD PTR [linecmds]
+
+asm	mov	bx,[slinex]
+asm	mov	di,bx
+asm	shr	di,1						// X in bytes
+asm	shr	di,1						//
+asm	mov	ds,WORD PTR [linecmds+2]
+
+scalesingle:
+asm	mov	bx,[ds:bp]					// table location of rtl to patch
+asm	or	bx,bx
+asm	jz	linedone					// 0 signals end of segment list
+asm	mov	bx,[es:bx]
+asm	mov	dl,[es:bx]					// save old value
+asm	mov	BYTE PTR es:[bx],OP_RETF	// patch a RETF in
+asm	mov	si,[ds:bp+4]				// table location of entry spot
+asm	mov	ax,[es:si]
+asm	mov	WORD PTR ss:[linescale],ax	// call here to start scaling
+asm	mov	si,[ds:bp+2]				// corrected top of shape for this segment
+asm	add	bp,6						// next segment list
+
+asm	mov	ax,ss:[cgabackbufferseg]
+asm	mov	es,ax
+
+asm	call ss:[linescale]				// scale the segment of pixels
+
+asm	mov	es,cx						// segment of scaler
+asm	mov	BYTE PTR es:[bx],dl			// unpatch the RETF
+asm	jmp	scalesingle					// do the next segment
+
+
+//
+// done
+//
+linedone:
+asm	mov	ax,ss
+asm	mov	ds,ax
+}
+#endif
 
 /*
 =======================
@@ -418,6 +469,7 @@ asm	jmp	scaletriple					// do the next segment
 
 static	long		longtemp;
 
+#if WITH_VGA
 void ScaleShape (int xcenter, int shapenum, unsigned height)
 {
 	t_compshape	_seg *shape;
@@ -595,7 +647,185 @@ void ScaleShape (int xcenter, int shapenum, unsigned height)
 		}
 	}
 }
+#else // CGA version
+void ScaleShape (int xcenter, int shapenum, unsigned height)
+{
+	t_compshape	_seg *shape;
+	t_compscale _seg *comptable;
+	unsigned	scale,srcx,stopx,tempx;
+	int			t;
+	unsigned	far *cmdptr;
+	boolean		leftvis,rightvis;
 
+
+	shape = PM_GetSpritePage (shapenum);
+
+	scale = height>>3;						// low three bits are fractional
+	if (!scale || scale>maxscale)
+		return;								// too close or far away
+	comptable = scaledirectory[scale];
+
+	*(((unsigned *)&linescale)+1)=(unsigned)comptable;	// seg of far call
+	*(((unsigned *)&linecmds)+1)=(unsigned)shape;		// seg of shape
+
+//
+// scale to the left (from pixel 31 to shape->leftpix)
+//
+	srcx = 32;
+	slinex = xcenter;
+	stopx = shape->leftpix;
+	cmdptr = &shape->dataofs[31-stopx];
+
+	while ( --srcx >=stopx && slinex>0)
+	{
+		(unsigned)linecmds = *cmdptr--;
+		if ( !(slinewidth = comptable->width[srcx]) )
+			continue;
+
+		if (slinewidth == 1)
+		{
+			slinex--;
+			if (slinex<viewwidth)
+			{
+				if (wallheight[slinex] >= height)
+					continue;		// obscured by closer wall
+				ScaleLine ();
+			}
+			continue;
+		}
+
+		//
+		// handle multi pixel lines
+		//
+		if (slinex>viewwidth)
+		{
+			slinex -= slinewidth;
+			slinewidth = viewwidth-slinex;
+			if (slinewidth<1)
+				continue;		// still off the right side
+		}
+		else
+		{
+			if (slinewidth>slinex)
+				slinewidth = slinex;
+			slinex -= slinewidth;
+		}
+
+
+		leftvis = (wallheight[slinex] < height);
+		rightvis = (wallheight[slinex+slinewidth-1] < height);
+
+		if (leftvis)
+		{
+			if (rightvis)
+				ScaleLine ();
+			else
+			{
+				while (wallheight[slinex+slinewidth-1] >= height)
+					slinewidth--;
+				ScaleLine ();
+			}
+		}
+		else
+		{
+			if (!rightvis)
+				continue;		// totally obscured
+
+			while (wallheight[slinex] >= height)
+			{
+				slinex++;
+				slinewidth--;
+			}
+			ScaleLine ();
+			break;			// the rest of the shape is gone
+		}
+	}
+
+
+//
+// scale to the right
+//
+	slinex = xcenter;
+	stopx = shape->rightpix;
+	if (shape->leftpix<31)
+	{
+		srcx = 31;
+		cmdptr = &shape->dataofs[32-shape->leftpix];
+	}
+	else
+	{
+		srcx = shape->leftpix-1;
+		cmdptr = &shape->dataofs[0];
+	}
+	slinewidth = 0;
+
+	while ( ++srcx <= stopx && (slinex+=slinewidth)<viewwidth)
+	{
+		(unsigned)linecmds = *cmdptr++;
+		if ( !(slinewidth = comptable->width[srcx]) )
+			continue;
+
+		if (slinewidth == 1)
+		{
+			if (slinex>=0 && wallheight[slinex] < height)
+			{
+				ScaleLine ();
+			}
+			continue;
+		}
+
+		//
+		// handle multi pixel lines
+		//
+		if (slinex<0)
+		{
+			if (slinewidth <= -slinex)
+				continue;		// still off the left edge
+
+			slinewidth += slinex;
+			slinex = 0;
+		}
+		else
+		{
+			if (slinex + slinewidth > viewwidth)
+				slinewidth = viewwidth-slinex;
+		}
+
+
+		leftvis = (wallheight[slinex] < height);
+		rightvis = (wallheight[slinex+slinewidth-1] < height);
+
+		if (leftvis)
+		{
+			if (rightvis)
+			{
+				ScaleLine ();
+			}
+			else
+			{
+				while (wallheight[slinex+slinewidth-1] >= height)
+					slinewidth--;
+				ScaleLine ();
+				break;			// the rest of the shape is gone
+			}
+		}
+		else
+		{
+			if (rightvis)
+			{
+				while (wallheight[slinex] >= height)
+				{
+					slinex++;
+					slinewidth--;
+				}
+				ScaleLine ();
+			}
+			else
+				continue;		// totally obscured
+		}
+	}
+}
+#endif
 
 
 /*
@@ -622,6 +852,8 @@ void ScaleShape (int xcenter, int shapenum, unsigned height)
 =======================
 */
 
+#ifdef WITH_VGA
+// VGA version
 void SimpleScaleShape (int xcenter, int shapenum, unsigned height)
 {
 	t_compshape	_seg *shape;
@@ -631,6 +863,7 @@ void SimpleScaleShape (int xcenter, int shapenum, unsigned height)
 	unsigned	far *cmdptr;
 	boolean		leftvis,rightvis;
 
+	backbufferseg = FP_SEG(cgabackbuffer);
 
 	shape = PM_GetSpritePage (shapenum);
 
@@ -687,6 +920,79 @@ void SimpleScaleShape (int xcenter, int shapenum, unsigned height)
 	}
 }
 
+#else // CGA version
+void SimpleScaleShape (int xcenter, int shapenum, unsigned height)
+{
+	t_compshape	_seg *shape;
+	t_compscale _seg *comptable;
+	unsigned	scale,srcx,stopx,tempx;
+	int			t;
+	unsigned	far *cmdptr;
+	boolean		leftvis,rightvis;
+
+	shape = PM_GetSpritePage (shapenum);
+
+	scale = height>>1;
+	comptable = scaledirectory[scale];
+
+	*(((unsigned *)&linescale)+1)=(unsigned)comptable;	// seg of far call
+	*(((unsigned *)&linecmds)+1)=(unsigned)shape;		// seg of shape
+
+//
+// scale to the left (from pixel 31 to shape->leftpix)
+//
+	srcx = 32;
+	slinex = xcenter;
+	stopx = shape->leftpix;
+	cmdptr = &shape->dataofs[31-stopx];
+
+	while ( --srcx >=stopx )
+	{
+		(unsigned)linecmds = *cmdptr--;
+		if ( !(slinewidth = comptable->width[srcx]) )
+			continue;
+
+		while(slinewidth--)
+		{
+			slinex--;
+			if(!(slinex & 0x3))
+				ScaleLine ();
+		}		
+	}
+
+
+//
+// scale to the right
+//
+	slinex = xcenter;
+	stopx = shape->rightpix;
+	if (shape->leftpix<31)
+	{
+		srcx = 31;
+		cmdptr = &shape->dataofs[32-shape->leftpix];
+	}
+	else
+	{
+		srcx = shape->leftpix-1;
+		cmdptr = &shape->dataofs[0];
+	}
+	slinewidth = 0;
+
+	while ( ++srcx <= stopx )
+	{
+		(unsigned)linecmds = *cmdptr++;
+		if ( !(slinewidth = comptable->width[srcx]) )
+			continue;
+
+		while(slinewidth--)
+		{
+			if(!(slinex & 0x3))
+				ScaleLine ();
+			slinex++;
+		}
+	}
+}
+#endif
 
 
 

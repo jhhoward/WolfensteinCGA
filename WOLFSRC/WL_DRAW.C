@@ -422,11 +422,14 @@ heightok:
 	//
 	asm	mov	bx,[postx]
 	asm	mov	di,bx
-	asm	shr	di,2						// X in bytes
+	asm	shr	di,1						// X in bytes
+	asm	shr	di,1						// 
 	asm	add	di,[bufferofs]
 
 	asm	and	bx,3
-	asm	shl	bx,3						// bx = pixel*8+pixwidth
+	asm	shl	bx,1						// bx = pixel*8+pixwidth
+	asm	shl	bx,1						// 
+	asm	shl	bx,1						// 
 	asm	add	bx,[postwidth]
 
 	asm	mov	al,BYTE PTR [mapmasks1-1+bx]	// -1 because no widths of 0
@@ -985,11 +988,14 @@ asm	out	dx,ax
 
 asm	mov	dx,80
 asm	mov	ax,[viewwidth]
-asm	shr	ax,2
+asm	shr	ax,1
+asm	shr	ax,1
 asm	sub	dx,ax					// dx = 40-viewwidth/2
 
 asm	mov	bx,[viewwidth]
-asm	shr	bx,3					// bl = viewwidth/8
+asm	shr	bx,1					// bl = viewwidth/8
+asm	shr	bx,1					// 
+asm	shr	bx,1					// 
 asm	mov	bh,BYTE PTR [viewheight]
 asm	shr	bh,1					// half height
 
@@ -1215,7 +1221,6 @@ void DrawPlayerWeapon (void)
 		return;
 	}
 #endif
-
 	if (gamestate.weapon != -1)
 	{
 		shapenum = weaponscale[gamestate.weapon]+gamestate.weaponframe;
@@ -1333,8 +1338,9 @@ void WallRefresh (void)
 int in_cga = 0;
 void SwitchCGA()
 {
-	cgabackbufferseg = FP_SEG(cgabackbuffer);
 	in_cga = 1;
+	
+	
 	asm mov ax, 0x0005
 	asm int 0x10
 	asm mov ax, 0x1000
@@ -1345,6 +1351,13 @@ void SwitchCGA()
 	asm mov bx, 0x3b01
 	asm int 0x10
 	
+	/*
+	asm mov ax, 0x0006
+	asm int 0x10
+	asm mov dx, 0x3d8
+	asm mov al, 0x1a
+	asm out dx, al
+	*/
 	{
 		unsigned char far* ptr = cgabackbuffer;
 		int ycount = 80;
@@ -1355,13 +1368,13 @@ void SwitchCGA()
 			xcount = 80;
 			while(xcount)
 			{
-				*ptr++ = 0x11;
+				*ptr++ = 0x22; //0x11;
 				xcount--;
 			}
 			xcount = 80;
 			while(xcount)
 			{
-				*ptr++ = 0x44;
+				*ptr++ = 0x22; //0x44;
 				xcount--;
 			}
 			ycount--;
@@ -1378,14 +1391,14 @@ void SwitchCGA()
 
 void CGAClearScreen()
 {
-	/*
+	
 	unsigned char far* ptr = cgabackbuffer;
 	int count = 0x4000;
 	while(count--)
 	{
-		*ptr++ = 0x55;
-		*ptr++ = 0xaa;
-	}*/
+		*ptr++ = 0x00;
+	//	*ptr++ = 0xaa;
+	}
 	
 /*	
 	asm	mov	es, [cgabackbufferseg]
@@ -1401,25 +1414,29 @@ void CGAClearScreen()
 	//
 	asm	mov	dx,80
 	asm	mov	ax,[viewwidth]
-	asm	shr	ax,2
+	asm	shr	ax,1
+	asm	shr	ax,1
 	asm	sub	dx,ax					// dx = 40-viewwidth/2
 
 	asm	mov	bx,[viewwidth]
-	asm	shr	bx,3					// bl = viewwidth/8
+	asm	shr	bx,1					// bl = viewwidth/8
+	asm	shr	bx,1					// 
+	asm	shr	bx,1					// 
 	asm	mov	bh,BYTE PTR [viewheight]
-	asm	shr	bh,2					// quarter height
+	asm	shr	bh,1					// quarter height
+	asm	shr	bh,1					// 
 
 	asm	mov	es,[cgabackbufferseg]
 	asm	mov	di,[bufferofs]
 
 	toploop:
 	asm	mov	cl,bl
-	asm	mov	ax,0xc0c0
+	asm	mov	ax,0x8888 //0xc0c0
 	asm	rep	stosw
 	asm	add	di,dx
 
 	asm	mov	cl,bl
-	asm	mov	ax,0x0c0c
+	asm	mov	ax,0x8888 //0x0c0c
 	asm	rep	stosw
 	asm	add	di,dx
 
@@ -1427,16 +1444,17 @@ void CGAClearScreen()
 	asm	jnz	toploop
 
 	asm	mov	bh,BYTE PTR [viewheight]
-	asm	shr	bh,2					// quarter height
+	asm	shr	bh,1					// quarter height
+	asm	shr	bh,1					// 
 
 	bottomloop:
 	asm	mov	cl,bl
-	asm	mov	ax,0xcccc
+	asm	mov	ax,0x5555 //0xcccc
 	asm	rep	stosw
 	asm	add	di,dx
 
 	asm	mov	cl,bl
-	asm	mov	ax,0x3333
+	asm	mov	ax,0x5555 //0x3333
 	asm	rep	stosw
 	asm	add	di,dx
 
@@ -1497,6 +1515,8 @@ blitlines:
 void	ThreeDRefresh (void)
 {
 	int tracedir;
+	
+	cgabackbufferseg = FP_SEG(cgabackbuffer);
 
 // this wouldn't need to be done except for my debugger/video wierdness
 	outportb (SC_INDEX,SC_MAPMASK);
@@ -1512,6 +1532,7 @@ asm	mov	cx,2048							// 64*64 / 2
 asm	rep stosw
 
 	bufferofs = 0;
+	screenofs = 0;
 	bufferofs += screenofs;
 
 //
@@ -1525,17 +1546,27 @@ asm	rep stosw
 
 
 	WallRefresh ();
-	CGABlit();
 	
 //
 // draw all the scaled images
 //
-	//DrawScaleds();			// draw scaled stuff
-	//DrawPlayerWeapon ();	// draw player's hands
+	{
+		int x;
+		for(x = 0; x < MAXVIEWWIDTH; x++)
+		{
+			wallheight[x] = 0;
+		}
+	}
+	DrawScaleds();			// draw scaled stuff
+	DrawPlayerWeapon ();	// draw player's hands
 
 //
 // show screen and time last cycle
 //
+	//SimpleScaleShape(viewheight/2,SPR_STAT_17,viewheight);
+	CGABlit();
+
+	//SimpleScaleShape(viewheight/2,SPR_STAT_17,viewheight);
 
 /*
 	if (fizzlein)

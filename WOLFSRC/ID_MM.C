@@ -129,6 +129,7 @@ void 		MML_ClearBlock (void);
 boolean MML_CheckForXMS (void)
 {
 	numUMBs = 0;
+	return false;
 
 asm {
 	mov	ax,0x4300
