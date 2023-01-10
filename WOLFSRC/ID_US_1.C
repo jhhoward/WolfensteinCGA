@@ -439,6 +439,12 @@ US_CPrint(char far *s)
 void
 US_ClearWindow(void)
 {
+	int colour;
+#ifdef WITH_VGA
+	colour = WHITE;
+#else
+	colour = 0xff;
+#endif
 	VWB_Bar(WindowX,WindowY,WindowW,WindowH,WHITE);
 	PrintX = WindowX;
 	PrintY = WindowY;

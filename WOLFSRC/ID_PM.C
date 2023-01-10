@@ -478,8 +478,6 @@ PML_ReadFromFile(byte far *buf,long offset,word length)
 		Quit("PML_ReadFromFile: Read failed");
 }
 
-extern boolean usecomposite;
-
 //
 //	PML_OpenPageFile() - Opens the page file and sets up the page info
 //

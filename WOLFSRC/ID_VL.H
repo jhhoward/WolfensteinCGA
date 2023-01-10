@@ -93,12 +93,16 @@ extern	unsigned	ylookup[MAXSCANLINES];
 extern	boolean		screenfaded;
 extern	unsigned	bordercolor;
 
+extern	unsigned	cgabackbufferseg;
+extern	boolean		usecomposite;
+
 //===========================================================================
 
 //
 // VGA hardware routines
 //
 
+#ifdef WITH_VGA
 #define VGAWRITEMODE(x) asm{\
 cli;\
 mov dx,GC_INDEX;\
@@ -113,7 +117,11 @@ sti;}
 
 #define VGAMAPMASK(x) asm{cli;mov dx,SC_INDEX;mov al,SC_MAPMASK;mov ah,x;out dx,ax;sti;}
 #define VGAREADMAP(x) asm{cli;mov dx,GC_INDEX;mov al,GC_READMAP;mov ah,x;out dx,ax;sti;}
-
+#else
+#define VGAWRITEMODE(x)
+#define VGAMAPMASK(x)
+#define VGAREADMAP(x)
+#endif
 
 void VL_Startup (void);
 void VL_Shutdown (void);
@@ -123,6 +131,7 @@ void VL_SetTextMode (void);
 void VL_DePlaneVGA (void);
 void VL_SetVGAPlaneMode (void);
 void VL_ClearVideo (byte color);
+void VL_SetCGAMode (void);
 
 void VL_SetLineWidth (unsigned width);
 void VL_SetSplitScreen (int linenum);
@@ -139,6 +148,7 @@ void VL_GetPalette (byte far *palette);
 void VL_FadeOut (int start, int end, int red, int green, int blue, int steps);
 void VL_FadeIn (int start, int end, byte far *palette, int steps);
 void VL_ColorBorder (int color);
+void VL_TintColor(byte color);
 
 void VL_Plot (int x, int y, int color);
 void VL_Hlin (unsigned x, unsigned y, unsigned width, unsigned color);
@@ -159,4 +169,5 @@ void VL_DrawPropString (char *str, unsigned tile8ptr, int printx, int printy);
 void VL_SizePropString (char *str, int *width, int *height, char far *font);
 
 void VL_TestPaletteSet (void);
+void VL_BlitCGA(void);
 

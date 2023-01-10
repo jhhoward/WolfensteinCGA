@@ -19,6 +19,7 @@ long			fullscalefarcall[MAXSCALEHEIGHT+1];
 int			maxscale,maxscaleshl2;
 
 boolean	insetupscaling;
+int			dithershift = 2;
 
 /*
 =============================================================================
@@ -68,6 +69,16 @@ void SetupScaling (int maxscaleheight)
 
 	maxscale = maxscaleheight-1;
 	maxscaleshl2 = maxscale<<2;
+
+#ifdef WITH_VGA
+	dithershift = 0;
+#else
+	dithershift = usecomposite ? 0 : 2;
+	if (MS_CheckParm("nodither"))
+	{
+		dithershift = 0;
+	}
+#endif
 
 //
 // free up old scalers
@@ -157,9 +168,8 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 	int			i;
 	long		fix,step;
 	unsigned	src,totalscaled,totalsize;
-	int			startpix,endpix,toppix;
-
-
+	int			startpix,endpix,toppix,pix;
+	
 	step = ((long)height<<16) / 64;
 	code = &work->code[0];
 	toppix = (viewheight-height)/2;
@@ -196,23 +206,68 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 		*code++ = 0x8a;
 		*code++ = 0x44;
 		*code++ = src;
-
-		for (;startpix<endpix;startpix++)
+		
+		if(!dithershift)
 		{
-			if (startpix >= viewheight)
-				break;						// off the bottom of the view area
-			if (startpix < 0)
-				continue;					// not into the view area
+			for (pix=(startpix);pix<endpix;pix++)
+			{
+				if (pix >= viewheight)
+					break;						// off the bottom of the view area
+				if (pix < 0)
+					continue;					// not into the view area
 
-		//
-		// mov [es:di+heightofs],al
-		//
-			*code++ = 0x26;
-			*code++ = 0x88;
-			*code++ = 0x85;
-			*((unsigned far *)code)++ = startpix*SCREENBWIDE;
+			//
+			// mov [es:di+heightofs],al
+			//
+				*code++ = 0x26;
+				*code++ = 0x88;
+				*code++ = 0x85;
+				*((unsigned far *)code)++ = pix*SCREENBWIDE;
+			}
 		}
+		else
+		{
+			for (pix=(startpix+1)&0xfffe;pix<endpix;pix+=2)
+			{
+				if (pix >= viewheight)
+					break;						// off the bottom of the view area
+				if (pix < 0)
+					continue;					// not into the view area
 
+			//
+			// mov [es:di+heightofs],al
+			//
+				*code++ = 0x26;
+				*code++ = 0x88;
+				*code++ = 0x85;
+				*((unsigned far *)code)++ = pix*SCREENBWIDE;
+			}
+
+			if(startpix | 1 < endpix)
+			{
+				// ror al, 1
+				*code++ = 0xd0;
+				*code++ = 0xc8;
+				*code++ = 0xd0;
+				*code++ = 0xc8;
+
+				for (pix=(startpix | 0x1);pix<endpix;pix+=2)
+				{
+					if (pix >= viewheight)
+						break;						// off the bottom of the view area
+					if (pix < 0)
+						continue;					// not into the view area
+
+				//
+				// mov [es:di+heightofs],al
+				//
+					*code++ = 0x26;
+					*code++ = 0x88;
+					*code++ = 0x85;
+					*((unsigned far *)code)++ = pix*SCREENBWIDE;
+				}
+			}
+		}
 	}
 
 //
@@ -245,7 +300,7 @@ extern	unsigned	maskword;
 
 byte	mask1,mask2,mask3;
 
-#if WITH_VGA
+#ifdef WITH_VGA
 // VGA version
 void near ScaleLine (void)
 {
@@ -411,7 +466,7 @@ asm	mov	bx,[slinex]
 asm	mov	di,bx
 asm	shr	di,1						// X in bytes
 asm	shr	di,1						//
-asm	add	di,[bufferofs]
+asm	add	di,[screenofs]
 asm	mov	ds,WORD PTR [linecmds+2]
 
 scalesingle:
@@ -470,7 +525,7 @@ asm	mov	ds,ax
 
 static	long		longtemp;
 
-#if WITH_VGA
+#ifdef WITH_VGA
 void ScaleShape (int xcenter, int shapenum, unsigned height)
 {
 	t_compshape	_seg *shape;

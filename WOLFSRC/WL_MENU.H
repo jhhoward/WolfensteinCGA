@@ -13,11 +13,19 @@
 
 #else
 
+#ifdef WITH_VGA
 #define BORDCOLOR	0x29
 #define BORD2COLOR	0x23
 #define DEACTIVE	0x2b
 #define BKGDCOLOR	0x2d
 #define STRIPE		0x2c
+#else
+#define BORDCOLOR	(usecomposite ? 0x3333 : 0x2aa2)
+#define BORD2COLOR	(usecomposite ? 0x3333 : 0x2aa2)
+#define DEACTIVE	(0x33cc)
+#define BKGDCOLOR	(usecomposite ? 0x2222 : 0x2288)
+#define STRIPE		0x0000
+#endif
 
 #define MenuFadeOut()	VL_FadeOut(0,255,43,0,0,10)
 

@@ -1203,18 +1203,28 @@ void UpdatePaletteShifts (void)
 		VW_WaitVBL(1);
 		VL_SetPalette (redshifts[red-1]);
 		palshifted = true;
+		
+#ifndef WITH_VGA
+		VL_TintColor(0x4);
+#endif
 	}
 	else if (white)
 	{
 		VW_WaitVBL(1);
 		VL_SetPalette (whiteshifts[white-1]);
 		palshifted = true;
+#ifndef WITH_VGA
+		VL_TintColor(0x7);
+#endif
 	}
 	else if (palshifted)
 	{
 		VW_WaitVBL(1);
 		VL_SetPalette (&gamepal);		// back to normal
 		palshifted = false;
+#ifndef WITH_VGA
+		VL_TintColor(0);
+#endif
 	}
 }
 
@@ -1236,6 +1246,9 @@ void FinishPaletteShifts (void)
 		palshifted = 0;
 		VW_WaitVBL(1);
 		VL_SetPalette (&gamepal);
+#ifndef WITH_VGA
+		VL_TintColor(0);
+#endif
 	}
 }
 

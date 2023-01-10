@@ -110,9 +110,6 @@ int		horizwall[MAXWALLTILES],vertwall[MAXWALLTILES];
 =============================================================================
 */
 
-memptr cgabackbuffer;
-unsigned cgabackbufferseg;
-
 
 void AsmRefresh (void);			// in WL_DR_A.ASM
 
@@ -483,7 +480,7 @@ heightok:
 	asm	mov	di,bx
 	asm	shr	di,1						// X in bytes
 	asm	shr	di,1						// 
-	asm	add	di,[bufferofs]
+	asm	add	di,[screenofs]
 
 	//asm	and	bx,3
 	//asm	shl	bx,1						// bx = pixel*8+pixwidth
@@ -555,7 +552,7 @@ void HitVertWall (void)
 	}
 	wallheight[pixx] = CalcHeight();
 
-#if WITH_VGA
+#ifdef WITH_VGA
 	if (lastside==1 && lastintercept == xtile && lasttilehit == tilehit)
 	{
 		// in the same wall type as last time, so check for optimized draw
@@ -630,7 +627,7 @@ void HitHorizWall (void)
 		texture = 0xfc0-texture;
 	wallheight[pixx] = CalcHeight();
 
-#if WITH_VGA
+#ifdef WITH_VGA
 	if (lastside==0 && lastintercept == ytile && lasttilehit == tilehit)
 	{
 		// in the same wall type as last time, so check for optimized draw
@@ -699,7 +696,7 @@ void HitHorizDoor (void)
 
 	wallheight[pixx] = CalcHeight();
 
-#if WITH_VGA
+#ifdef WITH_VGA
 	if (lasttilehit == tilehit)
 	{
 	// in the same door as last time, so check for optimized draw
@@ -769,7 +766,7 @@ void HitVertDoor (void)
 
 	wallheight[pixx] = CalcHeight();
 
-#if WITH_VGA
+#ifdef WITH_VGA
 	if (lasttilehit == tilehit)
 	{
 	// in the same door as last time, so check for optimized draw
@@ -850,7 +847,7 @@ void HitHorizPWall (void)
 
 	wallheight[pixx] = CalcHeight();
 
-#if WITH_VGA
+#ifdef WITH_VGA
 	if (lasttilehit == tilehit)
 	{
 		// in the same wall type as last time, so check for optimized draw
@@ -916,7 +913,7 @@ void HitVertPWall (void)
 
 	wallheight[pixx] = CalcHeight();
 
-#if WITH_VGA
+#ifdef WITH_VGA
 	if (lasttilehit == tilehit)
 	{
 		// in the same wall type as last time, so check for optimized draw
@@ -1413,7 +1410,7 @@ void WallRefresh (void)
 	ypartialdown = viewy&(TILEGLOBAL-1);
 	ypartialup = TILEGLOBAL-ypartialdown;
 
-#if WITH_VGA
+#ifdef WITH_VGA
 	lastside = -1;			// the first pixel is on a new wall
 #else
 	lastside = 0;
@@ -1423,76 +1420,6 @@ void WallRefresh (void)
 }
 
 //==========================================================================
-
-extern boolean usecomposite;
-
-int in_cga = 0;
-void SwitchCGA()
-{
-	in_cga = 1;
-	
-	if(usecomposite)
-	{
-		asm mov ax, 0x0006
-		asm int 0x10
-		asm mov dx, 0x3d8
-		asm mov al, 0x1a
-		asm out dx, al
-	}
-	else
-	{
-		asm mov ax, 0x0005
-		asm int 0x10
-		asm mov ax, 0x1000
-		asm mov bx, 0x3c02
-		asm int 0x10
-		asm mov bx, 0x3f03
-		asm int 0x10
-		asm mov bx, 0x3b01
-		asm int 0x10
-	}
-	
-	cgaCeilingFloor = usecomposite ? compositeCgaCeilingFloor : rgbCgaCeilingFloor;
-	
-	{
-		unsigned char far* ptr = cgabackbuffer;
-		int ycount = 80;
-		int xcount = 80;
-		
-		while(ycount)
-		{
-			xcount = 80;
-			while(xcount)
-			{
-				*ptr++ = 0x22; //0x11;
-				xcount--;
-			}
-			xcount = 80;
-			while(xcount)
-			{
-				*ptr++ = 0x22; //0x44;
-				xcount--;
-			}
-			ycount--;
-		}
-		
-		ycount = 40 * 80;
-		while(ycount)
-		{
-			*ptr++ = 0;
-			ycount--;
-		}
-	}
-	
-	{
-		unsigned char far* ptr = MK_FP(0xb800, 0);
-		int count = 0x4000;
-		while(count--)
-		{
-			*ptr++ = 0x0;
-		}
-	}
-}
 
 void CGAClearScreen()
 {
@@ -1608,8 +1535,6 @@ void	ThreeDRefresh (void)
 {
 	int tracedir;
 	
-	cgabackbufferseg = FP_SEG(cgabackbuffer);
-
 // this wouldn't need to be done except for my debugger/video wierdness
 	outportb (SC_INDEX,SC_MAPMASK);
 
@@ -1630,8 +1555,8 @@ asm	rep stosw
 //
 // follow the walls from there to the right, drawwing as we go
 //
-	if(!in_cga)
-		SwitchCGA();
+	cgaCeilingFloor = usecomposite ? compositeCgaCeilingFloor : rgbCgaCeilingFloor;
+
 	CGAClearScreen();
 
 	//VGAClearScreen ();

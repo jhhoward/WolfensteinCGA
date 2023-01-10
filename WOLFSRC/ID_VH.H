@@ -108,7 +108,11 @@ void VH_SetDefaultColors (void);
 #define VW_WaitVBL		VL_WaitVBL
 #define VW_FadeIn()		VL_FadeIn(0,255,&gamepal,30);
 #define VW_FadeOut()	VL_FadeOut(0,255,0,0,0,30);
+#ifdef WITH_VGA
 #define VW_ScreenToScreen	VL_ScreenToScreen
+#else
+#define VW_ScreenToScreen(source, dest, width, height)
+#endif
 #define VW_SetDefaultColors	VH_SetDefaultColors
 void	VW_MeasurePropString (char far *string, word *width, word *height);
 #define EGAMAPMASK(x)	VGAMAPMASK(x)

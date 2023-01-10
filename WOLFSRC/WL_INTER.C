@@ -309,8 +309,16 @@ void Victory (void)
 
 void PG13 (void)
 {
+	int backgroundColor;
+	
+#ifdef WITH_VGA
+	backgroundColor = 0x82;
+#else
+	backgroundColor = 0x55;
+#endif
+	
 	VW_FadeOut();
-	VWB_Bar(0,0,320,200,0x82);			// background
+	VWB_Bar(0,0,320,200,backgroundColor);			// background
 
 	CA_CacheGrChunk (PG13PIC);
 	VWB_DrawPic (216,110,PG13PIC);

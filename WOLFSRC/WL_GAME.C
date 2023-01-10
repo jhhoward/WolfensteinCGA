@@ -777,12 +777,19 @@ void SetupGameLevel (void)
 void DrawPlayBorderSides (void)
 {
 	int	xl,yl;
+	int borderColor;
 
 	xl = 160-viewwidth/2;
 	yl = (200-STATUSLINES-viewheight)/2;
+	
+#ifdef WITH_VGA
+	borderColor = 127;
+#else
+	borderColor = 0x55;
+#endif
 
-	VWB_Bar (0,0,xl-1,200-STATUSLINES,127);
-	VWB_Bar (xl+viewwidth+1,0,xl-2,200-STATUSLINES,127);
+	VWB_Bar (0,0,xl-1,200-STATUSLINES,borderColor);
+	VWB_Bar (xl+viewwidth+1,0,xl-2,200-STATUSLINES,borderColor);
 
 	VWB_Vlin (yl-1,yl+viewheight,xl-1,0);
 	VWB_Vlin (yl-1,yl+viewheight,xl+viewwidth,125);
@@ -841,8 +848,15 @@ void DrawAllPlayBorder (void)
 void DrawPlayBorder (void)
 {
 	int	xl,yl;
+	int borderColor;
+	
+#ifdef WITH_VGA
+	borderColor = 127;
+#else
+	borderColor = 0x1144;
+#endif
 
-	VWB_Bar (0,0,320,200-STATUSLINES,127);
+	VWB_Bar (0,0,320,200-STATUSLINES,borderColor);
 
 	xl = 160-viewwidth/2;
 	yl = (200-STATUSLINES-viewheight)/2;

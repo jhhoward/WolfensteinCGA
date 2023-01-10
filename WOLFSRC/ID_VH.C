@@ -37,6 +37,7 @@ void	VWL_UpdateScreenBlocks (void);
 
 //==========================================================================
 
+#ifdef WITH_VGA
 void VW_DrawPropString (char far *string)
 {
 	fontstruct	far	*font;
@@ -91,7 +92,62 @@ asm	mov	ds,ax
 bufferheight = height;
 bufferwidth = ((dest+1)-origdest)*4;
 }
+#else
+void VW_DrawPropString (char far *string)
+{
+	fontstruct	far	*font;
+	int		width,step,height,i;
+	byte	far *source, far *dest, far *origdest;
+	byte	ch,mask;
 
+	font = (fontstruct far *)grsegs[STARTFONT+fontnumber];
+	height = bufferheight = font->height;
+	dest = origdest = MK_FP(cgabackbufferseg,ylookup[py]+(px>>2));
+	mask = 1<<(px&3);
+
+
+	while ((ch = *string++)!=0)
+	{
+		width = step = font->width[ch];
+		source = ((byte far *)font)+font->location[ch];
+		while (width--)
+		{
+			//VGAMAPMASK(mask);
+
+asm	mov	ah,[BYTE PTR fontcolor]
+asm	mov	bx,[step]
+asm	mov	cx,[height]
+asm	mov	dx,[linewidth]
+asm	lds	si,[source]
+asm	les	di,[dest]
+
+vertloop:
+asm	mov	al,[si]
+asm	or	al,al
+asm	je	next
+asm	mov	[es:di],ah			// draw color
+
+next:
+asm	add	si,bx
+asm	add	di,dx
+asm	loop	vertloop
+asm	mov	ax,ss
+asm	mov	ds,ax
+
+			source++;
+			px++;
+			mask <<= 1;
+			if (mask == 16)
+			{
+				mask = 1;
+				dest++;
+			}
+		}
+	}
+bufferheight = height;
+bufferwidth = ((dest+1)-origdest)*4;
+}
+#endif
 
 void VW_DrawColorPropString (char far *string)
 {
@@ -172,7 +228,7 @@ void VL_MungePic (byte far *source, unsigned width, unsigned height)
 	unsigned	x,y,plane,size,pwidth;
 	byte		_seg *temp, far *dest, far *srcline;
 
-	return;
+	//return;
 	
 	size = width*height;
 
@@ -309,7 +365,7 @@ void VWB_DrawPic (int x, int y, int chunknum)
 {
 	int	picnum = chunknum - STARTPICS;
 	unsigned width,height;
-	return;
+	//return;
 
 	x &= ~7;
 
@@ -325,7 +381,7 @@ void VWB_DrawPic (int x, int y, int chunknum)
 void VWB_DrawPropString	 (char far *string)
 {
 	int x;
-	return;
+	//return;
 	x=px;
 	VW_DrawPropString (string);
 	VW_MarkUpdateBlock(x,py,px-1,py+bufferheight-1);
@@ -334,7 +390,7 @@ void VWB_DrawPropString	 (char far *string)
 
 void VWB_Bar (int x, int y, int width, int height, int color)
 {
-	return;
+	//return;
 	if (VW_MarkUpdateBlock (x,y,x+width,y+height-1) )
 		VW_Bar (x,y,width,height,color);
 }
@@ -365,7 +421,11 @@ void VWB_Vlin (int y1, int y2, int x, int color)
 
 void VW_UpdateScreen (void)
 {
+#ifdef WITH_VGA
 	VH_UpdateScreen ();
+#else
+	VL_BlitCGA();
+#endif
 }
 
 

@@ -6,6 +6,7 @@
 #include <string.h>
 #include "ID_HEAD.H"
 #include "ID_VL.H"
+#include "ID_MM.H"
 #pragma hdrstop
 
 //
@@ -28,6 +29,9 @@ boolean		fastpalette;				// if true, use outsb to set
 byte		far	palette1[256][3],far palette2[256][3];
 
 boolean		usecomposite = false;
+
+unsigned	cgabackbufferseg;
+memptr 		cgabackbuffer;
 
 //===========================================================================
 
@@ -153,9 +157,9 @@ asm	int	0x10
 =================
 */
 
+#ifdef WITH_VGA
 void VL_ClearVideo (byte color)
 {
-	return;
 asm	mov	dx,GC_INDEX
 asm	mov	al,GC_MODE
 asm	out	dx,al
@@ -176,6 +180,13 @@ asm	mov	cx,0x8000			// 0x8000 words, clearing 8 video bytes/word
 asm	xor	di,di
 asm	rep	stosw
 }
+#else
+void VL_ClearVideo (byte color)
+{
+	// CGA
+	_fmemset(cgabackbuffer, color, 0x4000);
+}
+#endif
 
 
 /*
@@ -252,12 +263,13 @@ void VL_DePlaneVGA (void)
 void VL_SetLineWidth (unsigned width)
 {
 	int i,offset;
-	return;
+
+#ifdef WITH_VGA
 //
 // set wide virtual screen
 //
 	outport (CRTC_INDEX,CRTC_OFFSET+width*256);
-
+#endif
 //
 // set up lookup tables
 //
@@ -378,7 +390,8 @@ void VL_GetColor	(int color, int *red, int *green, int *blue)
 void VL_SetPalette (byte far *palette)
 {
 	int	i;
-	return;
+
+#ifdef WITH_VGA
 //	outportb (PEL_WRITE_ADR,0);
 //	for (i=0;i<768;i++)
 //		outportb(PEL_DATA,*palette++);
@@ -415,7 +428,7 @@ setloop:
 done:
 	asm	mov	ax,ss
 	asm	mov	ds,ax
-
+#endif
 }
 
 
@@ -458,7 +471,8 @@ void VL_FadeOut (int start, int end, int red, int green, int blue, int steps)
 {
 	int		i,j,orig,delta;
 	byte	far *origptr, far *newptr;
-	return;
+
+#ifdef WITH_VGA
 	VL_WaitVBL(1);
 	VL_GetPalette (&palette1[0][0]);
 	_fmemcpy (palette2,palette1,768);
@@ -491,6 +505,57 @@ void VL_FadeOut (int start, int end, int red, int green, int blue, int steps)
 // final color
 //
 	VL_FillPalette (red,green,blue);
+	
+#else
+	if(usecomposite)
+	{
+		asm mov dx,0x3d9
+		asm mov al,0x7
+		asm out dx,al
+		
+		VL_WaitVBL(5);
+		
+		asm mov dx,0x3d9
+		asm mov al,0x8
+		asm out dx,al
+		
+		VL_WaitVBL(5);
+
+		asm mov dx,0x3d9
+		asm mov al,0x0
+		asm out dx,al
+	}
+	else
+	{
+		asm mov dx,0x3d9
+		asm mov al,0x20
+		asm out dx,al
+		
+		// EGA / VGA need to explicitly set colours
+		asm mov ax, 0x1000
+		asm mov bx, 0x0402
+		asm int 0x10
+		asm mov bx, 0x0303
+		asm int 0x10
+		asm mov bx, 0x0701
+		asm int 0x10
+		
+		VL_WaitVBL(5);
+		
+		asm mov dx,0x3d8
+		asm mov al,0x6
+		asm out dx,al
+
+		// EGA / VGA need to explicitly set colours
+		asm mov ax, 0x1000
+		asm mov bx, 0x0002
+		asm int 0x10
+		asm mov bx, 0x0003
+		asm int 0x10
+		asm mov bx, 0x0001
+		asm int 0x10
+	}
+#endif
 
 	screenfaded = true;
 }
@@ -507,7 +572,7 @@ void VL_FadeOut (int start, int end, int red, int green, int blue, int steps)
 void VL_FadeIn (int start, int end, byte far *palette, int steps)
 {
 	int		i,j,delta;
-	return;
+#ifdef WITH_VGA
 	VL_WaitVBL(1);
 	VL_GetPalette (&palette1[0][0]);
 	_fmemcpy (&palette2[0][0],&palette1[0][0],sizeof(palette1));
@@ -534,6 +599,60 @@ void VL_FadeIn (int start, int end, byte far *palette, int steps)
 // final color
 //
 	VL_SetPalette (palette);
+	
+#else
+	if(usecomposite)
+	{
+		asm mov dx,0x3d9
+		asm mov al,0x8
+		asm out dx,al
+		
+		VL_WaitVBL(5);
+		
+		asm mov dx,0x3d9
+		asm mov al,0x7
+		asm out dx,al
+		
+		VL_WaitVBL(5);
+
+		asm mov dx,0x3d9
+		asm mov al,0xf
+		asm out dx,al
+	}
+	else
+	{
+		asm mov dx,0x3d9
+		asm mov al,0x20
+		asm out dx,al
+		asm mov dx,0x3d8
+		asm mov al,0xe
+		asm out dx,al
+		
+		// EGA / VGA need to explicitly set colours
+		asm mov ax, 0x1000
+		asm mov bx, 0x0402
+		asm int 0x10
+		asm mov bx, 0x0303
+		asm int 0x10
+		asm mov bx, 0x0701
+		asm int 0x10
+		
+		VL_WaitVBL(5);
+		
+		asm mov dx,0x3d9
+		asm mov al,0x30
+		asm out dx,al
+		
+		// EGA / VGA need to explicitly set colours
+		asm mov ax, 0x1000
+		asm mov bx, 0x3c02
+		asm int 0x10
+		asm mov bx, 0x3f03
+		asm int 0x10
+		asm mov bx, 0x3b01
+		asm int 0x10
+	}
+#endif
 	screenfaded = false;
 }
 
@@ -701,7 +820,10 @@ void VL_Bar (int x, int y, int width, int height, int color)
 	byte	far *dest;
 	byte	leftmask,rightmask;
 	int		midbytes,linedelta;
-
+	int		color2;
+	int		halfheight;
+	
+#ifdef WITH_VGA
 	leftmask = leftmasks[x&3];
 	rightmask = rightmasks[(x+width-1)&3];
 	midbytes = ((x+width+3)>>2) - (x>>2) - 2;
@@ -738,6 +860,32 @@ void VL_Bar (int x, int y, int width, int height, int color)
 	}
 
 	VGAMAPMASK(15);
+#else
+	dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2));
+
+	width >>= 2;
+	color2 = color >> 8;
+	color &= 0xff;
+	halfheight = height >> 1;
+	
+	while(halfheight--)
+	{
+		_fmemset (dest,color,width);
+		dest+=linewidth;
+		_fmemset (dest,color2,width);
+		dest+=linewidth;
+	}
+	
+	height -= halfheight;
+	height -= halfheight;
+	
+	if (height)
+	{
+		_fmemset (dest,color,width);
+		dest+=linewidth;
+	}
+	//VL_BlitCGA();
+#endif
 }
 
 /*
@@ -799,8 +947,9 @@ void VL_MemToScreen (byte far *source, int width, int height, int x, int y)
 {
 	byte    far *screen,far *dest,mask;
 	int		plane;
-	return;
+	//return;
 
+#ifdef WITH_VGA
 	width>>=2;
 	dest = MK_FP(SCREENSEG,bufferofs+ylookup[y]+(x>>2) );
 	mask = 1 << (x&3);
@@ -816,6 +965,17 @@ void VL_MemToScreen (byte far *source, int width, int height, int x, int y)
 		for (y=0;y<height;y++,screen+=linewidth,source+=width)
 			_fmemcpy (screen,source,width);
 	}
+#else
+	width>>=2;
+	dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2) );
+	//mask = 1 << (x&3);
+
+	screen = dest;
+	for (y=0;y<height;y++,screen+=linewidth,source+=width)
+		_fmemcpy (screen,source,width);
+	
+	//VL_BlitCGA();
+#endif
 }
 
 //==========================================================================
@@ -837,7 +997,7 @@ void VL_MaskedToScreen (byte far *source, int width, int height, int x, int y)
 	byte	far *maskptr;
 	int		plane;
 
-	return;
+#ifdef WITH_VGA
 	width>>=2;
 	dest = MK_FP(SCREENSEG,bufferofs+ylookup[y]+(x>>2) );
 //	mask = 1 << (x&3);
@@ -855,6 +1015,19 @@ void VL_MaskedToScreen (byte far *source, int width, int height, int x, int y)
 		for (y=0;y<height;y++,screen+=linewidth,source+=width)
 			_fmemcpy (screen,source,width);
 	}
+#else
+	
+	width>>=2;
+	dest = MK_FP(SCREENSEG,ylookup[y]+(x>>2) );
+//	mask = 1 << (x&3);
+
+//	maskptr = source;
+
+	screen = dest;
+	for (y=0;y<height;y++,screen+=linewidth,source+=width)
+		_fmemcpy (screen,source,width);
+	//VL_BlitCGA();
+#endif
 }
 
 //==========================================================================
@@ -1086,9 +1259,98 @@ void VL_SizeTile8String (char *str, int *width, int *height)
 }
 
 
+void VL_SetCGAMode(void)
+{
+	if(usecomposite)
+	{
+		asm mov ax, 0x0006
+		asm int 0x10
+		asm mov dx, 0x3d8
+		asm mov al, 0x1a
+		asm out dx, al
+	}
+	else
+	{
+		asm mov ax, 0x0005
+		asm int 0x10
+		
+		// EGA / VGA need to explicitly set bright palette with red
+		asm mov ax, 0x1000
+		asm mov bx, 0x3c02
+		asm int 0x10
+		asm mov bx, 0x3f03
+		asm int 0x10
+		asm mov bx, 0x3b01
+		asm int 0x10
+	}
 
+	MM_GetPtr (&cgabackbuffer,0x8000);
+	cgabackbufferseg = FP_SEG(cgabackbuffer);
+	
+	_fmemset(cgabackbuffer, 0, 0x8000);
+	
+	VL_SetLineWidth (40);
+}
 
+void VL_BlitCGA(void)
+{
+	#if 0
+	asm mov dx, 100
+	asm mov si, 0
+	asm mov di, 0
+	
+	asm mov bx, 80	
+	
+	asm push ds
+	asm mov ds, [cgabackbufferseg]
+	
+blitlines:
+	asm mov cx, 0xb800
+	asm mov es, cx
 
+	asm mov cx, bx
+	asm rep movsb
+
+	asm sub di, bx
+
+	asm mov cx, 0xba00
+	asm mov es, cx
+	
+	asm mov cx, bx
+	asm rep movsb
+		
+	asm dec dx
+	asm jnz blitlines
+	
+	asm pop ds
+	#endif
+}
+
+void VL_TintColor(byte color)
+{
+	if(usecomposite)
+	{
+		if(!color)
+			color = 0xf;
+		
+		asm mov dx, 0x3d9
+		asm mov al, [color]
+		asm out dx, al
+	}
+	else
+	{
+		asm mov dx, 0x3d9
+		asm mov al, [color]
+		asm or al, 0x30
+		asm out dx, al
+		
+		// EGA / VGA
+		asm mov ax, 0x1000
+		asm mov bl, 0
+		asm mov bh, [color]
+		asm int 0x10
+	}
+}
 
 
 

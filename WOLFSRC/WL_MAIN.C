@@ -724,27 +724,30 @@ void SetupWalls (void)
 ==========================
 */
 
-extern memptr cgabackbuffer;
-extern unsigned cgabackbufferseg;
-extern boolean usecomposite;
-
 void SignonScreen (void)                        // VGA version
 {
 	unsigned        segstart,seglength;
 
-	MM_GetPtr (&cgabackbuffer,0x8000);
-	cgabackbufferseg = FP_SEG(cgabackbuffer);
-
+#ifdef WITH_VGA
 	VL_SetVGAPlaneMode ();
 	VL_TestPaletteSet ();
 	VL_SetPalette (&gamepal);
+#else
+	VL_SetCGAMode();
+#endif
 
 	if (!virtualreality)
 	{
+#ifdef WITH_VGA
 		VW_SetScreen(0x8000,0);
 		VL_MungePic (&introscn,320,200);
 		VL_MemToScreen (&introscn,320,200,0,0);
 		VW_SetScreen(0,0);
+#else
+		VL_MungePic (&introscn,320,200);
+		VL_MemToScreen (&introscn,320,200,0,0);
+		VL_BlitCGA();
+#endif
 	}
 
 //
