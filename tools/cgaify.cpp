@@ -1,12 +1,16 @@
 #include "lodepng.cpp"
 #include <stdint.h>
 #include <stdio.h>
+#include "huffman.cpp"
 
 using namespace std;
+
+#define USE_ALL_DITHERS 1
 
 #define NUM_PATTERNS (sizeof(patterns) / 4)
 uint8_t patterns[] =
 {
+#if USE_ALL_DITHERS
 	0, 0, 0, 0,
 	0, 1, 0, 0,
 	0, 1, 0, 1,
@@ -28,6 +32,45 @@ uint8_t patterns[] =
 	0, 3, 0, 3,
 	3, 3, 0, 3,
 	1, 2, 1, 2,
+#else
+	0, 0, 0, 0,
+	1, 1, 1, 1,
+	2, 2, 2, 2,
+	3, 3, 3, 3,
+#endif
+};
+
+uint8_t patternsShifted[] =
+{
+#if USE_ALL_DITHERS
+	0, 0, 0, 0,
+	0, 0, 0, 1,
+	1, 0, 1, 0,
+	0, 1, 1, 1,
+	1, 1, 1, 1,
+	3, 1, 1, 1,
+	1, 3, 1, 3,
+	3, 3, 3, 1,
+	0, 0, 0, 2,
+	2, 0, 2, 0,
+	0, 2, 2, 2,
+	2, 2, 2, 2,
+	3, 2, 2, 2,
+	2, 3, 2, 3,
+	3, 3, 3, 2,
+	3, 3, 3, 3,
+	0, 0, 0, 0,
+	0, 0, 0, 3,
+	3, 0, 3, 0,
+	0, 3, 3, 3,
+	2, 1, 2, 1
+#else
+	0, 0, 0, 0,
+	1, 1, 1, 1,
+	2, 2, 2, 2,
+	3, 3, 3, 3,
+#endif
+
 };
 
 uint8_t patterns2[] = 
@@ -148,6 +191,8 @@ uint8_t cgaPalette[] =
 
 uint8_t convertLUT[256];
 uint8_t convertLUTComposite[256];
+
+uint8_t wolfPalette[256 * 3];
 
 void GammaAdjust(uint8_t* rgb)
 {
@@ -342,6 +387,10 @@ void GenerateLUT()
 			rgb[1] = pixels[index * 4 + 1];
 			rgb[2] = pixels[index * 4 + 2];
 			
+			wolfPalette[index * 3] = pixels[index * 4];
+			wolfPalette[index * 3 + 1] = pixels[index * 4 + 1];
+			wolfPalette[index * 3 + 2] = pixels[index * 4 + 2];
+			
 			int match = FindClosestPaletteEntry(rgb, patternsRGB, NUM_PATTERNS, patternsRGBWeights);
 			uint8_t pattern = 0;
 			
@@ -415,6 +464,295 @@ void GenerateDataFile(const char* filename, uint8_t* data, int dataLength, uint8
 	fclose(fs);
 }
 
+#define STARTPICS    3
+#define NUMPICS      132
+
+struct GraphChunk
+{
+	uint8_t* data;
+	uint32_t dataSize;
+	uint32_t uncompressedSize;
+	uint8_t* uncompressedData;
+	uint32_t headerOffset;
+};
+
+void ProcessGraphics()
+{
+	FILE* dictionaryFile = fopen("VGADICT.WL6", "rb");
+	if(!dictionaryFile)
+	{
+		printf("Could not open dictionary\n");
+		exit(1);
+	}
+	fread(grhuffman, sizeof(grhuffman), 1, dictionaryFile);
+	fclose(dictionaryFile);
+
+	FILE* headFile = fopen("VGAHEAD.WL6", "rb");
+	
+	if(!headFile)
+	{
+		printf("Could not open head\n");
+		exit(1);
+	}
+
+	fseek(headFile, 0, SEEK_END);
+	long headerSize = ftell(headFile);
+    fseek(headFile, 0, SEEK_SET);
+	printf("Header file size: %d bytes\n", headerSize);
+	
+	if(headerSize % 3)
+	{
+		printf("File size not multiple of 3?\n");
+		exit(1);
+	}
+	
+	int numChunks = (headerSize / 3) - 1;
+	
+	GraphChunk* chunks = new GraphChunk[numChunks];
+	
+	printf("Num chunks: %d\n", numChunks);
+	
+	for(int n = 0; n < numChunks + 1; n++)
+	{
+		uint32_t offset = 0;
+		
+		for(int i = 0; i < 3; i++)
+		{
+			uint8_t offsetPart;
+			fread(&offsetPart, 1, 1, headFile);
+			offset |= (offsetPart << (i * 8));
+		}
+		
+		if(n < numChunks)
+		{
+			chunks[n].headerOffset = offset;
+		}
+		if(n > 0)
+		{
+			chunks[n - 1].dataSize = offset - chunks[n - 1].headerOffset;
+		}
+		
+		printf("Chunk %d: offset: %x\n", n, offset);
+	}
+	
+	fclose(headFile);
+	
+	FILE* graphicsFile = fopen("VGAGRAPH.WL6", "rb");
+	fseek(graphicsFile, 0, SEEK_END);
+	long graphicsLength = ftell(graphicsFile);
+    fseek(graphicsFile, 0, SEEK_SET);
+	
+	uint8_t* graphicsData = new uint8_t[graphicsLength];
+	fread(graphicsData, 1, graphicsLength, graphicsFile);
+	fclose(graphicsFile);
+	
+	
+	for(int n = 0; n < numChunks; n++)
+	{
+		chunks[n].data = graphicsData + chunks[n].headerOffset;
+
+		if (n < STARTPICS + NUMPICS)
+		{
+			chunks[n].uncompressedSize = *(uint32_t*)(chunks[n].data);
+			chunks[n].uncompressedData = new uint8_t[chunks[n].uncompressedSize];
+
+			HuffExpand(chunks[n].data + 4, chunks[n].uncompressedData, chunks[n].uncompressedSize, grhuffman);
+			
+			//TestRecompress(chunks[n].uncompressedData, chunks[n].uncompressedSize, chunks[n].compressedData, chunks[n].compressedSize - 4, grhuffman);
+		}
+		else
+		{
+			chunks[n].uncompressedSize = NULL;
+			chunks[n].uncompressedData = NULL;
+		}
+	}
+	
+	printf("Graphics size: %d bytes\n", graphicsLength);
+	
+	pictabletype* pictable = (pictabletype*)(chunks[0].uncompressedData);
+	
+	for(int n = STARTPICS; n < STARTPICS + NUMPICS; n++)
+	{
+		pictabletype* picmetadata = &pictable[n - STARTPICS];
+		printf("%d : %d x %d (%d bytes)\n", n, picmetadata->width, picmetadata->height, chunks[n].uncompressedSize);
+		
+		//if(n == 0)
+		if(0)
+		{
+			vector<uint8_t> rgbData;
+			rgbData.resize(picmetadata->width * picmetadata->height * 4);
+			uint8_t* picData = chunks[n].uncompressedData;
+			
+			int inputIndex = 0;
+			for(int plane = 0; plane < 4; plane++)
+			{
+				for(int y = 0; y < picmetadata->height; y++)
+				{
+					for(int x = 0; x < picmetadata->width / 4; x++)
+					{
+						int outputIndex = 4 * (y * picmetadata->width + (x * 4) + plane);
+						uint8_t indexColour = picData[inputIndex];
+						uint8_t* rgb = &wolfPalette[indexColour * 3];
+						int patternMatch = FindClosestPaletteEntry(rgb, patternsRGB, NUM_PATTERNS, patternsRGBWeights);
+						int patternIndex = 0;
+
+						if (y & 1)
+						{
+							patternIndex = patternsShifted[patternMatch * 4 + plane];
+						}
+						else
+						{
+							patternIndex = patterns[patternMatch * 4 + plane];
+						}
+
+						//patternIndex = FindClosestPaletteEntry(rgb, palette, 4);
+						
+						rgbData[outputIndex] = palette[patternIndex * 3];
+						rgbData[outputIndex + 1] = palette[patternIndex * 3 + 1];
+						rgbData[outputIndex + 2] = palette[patternIndex * 3 + 2];
+						rgbData[outputIndex + 3] = 255;
+						
+						inputIndex++;
+						
+						
+					}
+				}
+			}
+			
+			char filename[50];
+			sprintf(filename, "pic%d.png", n - STARTPICS);
+			lodepng::encode(filename, rgbData, picmetadata->width, picmetadata->height);
+		}
+
+		{
+			uint8_t* picData = chunks[n].uncompressedData;
+			uint8_t* newPicData = new uint8_t[picmetadata->width * picmetadata->height];
+			for (int y = 0; y < picmetadata->height; y++)
+			{
+				for (int x = 0; x < picmetadata->width / 4; x++)
+				{
+					uint8_t pixels = 0;
+
+					for (int plane = 0; plane < 4; plane++)
+					{
+						int planeIndex = (picmetadata->height * picmetadata->width / 4) * plane + y * (picmetadata->width / 4) + x;
+						uint8_t inputPixel = picData[planeIndex];
+
+						uint8_t* rgb = &wolfPalette[inputPixel * 3];
+
+						if (1)
+						{
+							int patternMatch = FindClosestPaletteEntry(rgb, patternsRGB, NUM_PATTERNS, patternsRGBWeights);
+							int patternIndex = 0;
+
+							if (y & 1)
+							{
+								patternIndex = patternsShifted[patternMatch * 4 + plane];
+							}
+							else
+							{
+								patternIndex = patterns[patternMatch * 4 + plane];
+							}
+
+							patternIndex = FindClosestPaletteEntry(rgb, palette, 4);
+
+							pixels |= patternIndex << ((3 - plane) * 2);
+						}
+						else if(1)
+						{
+							int patternMatch = FindClosestPaletteEntry(rgb, compositePalette, 16);
+							uint8_t doubled = patternMatch | (patternMatch << 4);
+							uint8_t mask = 0x2 << ((3 - plane) * 2);
+							pixels |= (mask & doubled);
+						}
+						else
+						{
+							int patternMatch = FindClosestPaletteEntry(rgb, compositePatternRGB, 256, compositePatternRGBWeights);
+							uint8_t mask = 0x2 << ((3 - plane) * 2);
+							pixels |= (mask & patternMatch);
+						}
+					}
+
+					newPicData[y * (picmetadata->width / 4) + x] = pixels;
+				}
+			}
+
+			int bufferSpace = picmetadata->width * picmetadata->height * 4;
+			uint8_t* newCompressedData = new uint8_t[bufferSpace];
+			uint32_t* ptr = (uint32_t*)(newCompressedData);
+			*ptr = picmetadata->width * picmetadata->height;
+			long compressedDataSize = HuffCompress(newPicData, (picmetadata->width / 4) * picmetadata->height, newCompressedData + 4, bufferSpace - 4, grhuffman);
+
+			if (0)
+			{
+				if (compressedDataSize != chunks[n].dataSize - 4)
+				{
+					printf("Compressed size differs. Original: %d bytes New: %d bytes\n", chunks[n].dataSize - 4, compressedDataSize);
+				}
+
+				for (int x = 0; x < chunks[n].dataSize; x++)
+				{
+					if (chunks[n].data[x] != newCompressedData[x])
+					{
+						if (x >= compressedDataSize + 4)
+						{
+							printf("Byte %x Original: %x New: !\n", x, chunks[n].data[x]);
+						}
+						else
+						{
+							printf("Byte %x Original: %x New: %x\n", x, chunks[n].data[x], newCompressedData[x]);
+						}
+					}
+				}
+			}
+
+			chunks[n].data = newCompressedData;
+			chunks[n].dataSize = compressedDataSize + 4;
+
+
+			//HuffExpand(newCompressedData + 4, picData, picmetadata->width * picmetadata->height, grhuffman);
+		}
+	}
+
+	FILE* graphicsFileOut = fopen("CGAGRAPH.WL6", "wb");
+	uint32_t totalGraphicsFileLength = 0;
+	for (int n = 0; n < numChunks; n++)
+	{
+		fwrite(chunks[n].data, 1, chunks[n].dataSize, graphicsFileOut);
+		chunks[n].headerOffset = totalGraphicsFileLength;
+		totalGraphicsFileLength += chunks[n].dataSize;
+	}
+	fclose(graphicsFileOut);
+
+	FILE* dictFileOut = fopen("CGADICT.WL6", "wb");
+	fwrite(grhuffman, sizeof(grhuffman), 1, dictFileOut);
+	fclose(dictFileOut);
+
+	FILE* graphicsHeadOut = fopen("CGAHEAD.WL6", "wb");
+	for (int n = 0; n < numChunks; n++)
+	{
+		uint32_t offset = chunks[n].headerOffset;
+
+		for (int n = 0; n < 3; n++)
+		{
+			uint8_t writeOut = (uint8_t)(offset & 0xff);
+			fwrite(&writeOut, 1, 1, graphicsHeadOut);
+			offset >>= 8;
+		}
+	}
+	{
+		uint32_t offset = totalGraphicsFileLength;
+
+		for (int n = 0; n < 3; n++)
+		{
+			uint8_t writeOut = (uint8_t)(offset & 0xff);
+			fwrite(&writeOut, 1, 1, graphicsHeadOut);
+			offset >>= 8;
+		}
+	}
+	fclose(graphicsHeadOut);
+}
+
 int main(int argc, char** argv)
 {
 	GeneratePatternsRGB();
@@ -422,6 +760,8 @@ int main(int argc, char** argv)
 	GenerateCGAPaletteRGB();
 
 	GenerateLUT();
+	
+	ProcessGraphics();
 	
 	if(argc == 2)
 	{

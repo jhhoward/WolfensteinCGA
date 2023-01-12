@@ -57,7 +57,7 @@ extern	char		far signon;
 //-----------------
 
 
-#define GREXT	"VGA"
+#define GREXT	"CGA"
 
 //
 //	ID Engine

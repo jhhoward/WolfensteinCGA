@@ -73,7 +73,7 @@ void SetupScaling (int maxscaleheight)
 #ifdef WITH_VGA
 	dithershift = 0;
 #else
-	dithershift = usecomposite ? 0 : 2;
+	dithershift = usecomposite ? 4 : 2;
 	if (MS_CheckParm("nodither"))
 	{
 		dithershift = 0;
@@ -155,6 +155,7 @@ void SetupScaling (int maxscaleheight)
 = ---------
 = DS:SI		Source for scale
 = ES:DI		Dest for scale
+= CL		Dither rotation amount (bits)
 =
 = Calling the compiled scaler only destroys AL
 =
@@ -227,6 +228,7 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 		}
 		else
 		{
+			// First draw even lines
 			for (pix=(startpix+1)&0xfffe;pix<endpix;pix+=2)
 			{
 				if (pix >= viewheight)
@@ -243,14 +245,14 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 				*((unsigned far *)code)++ = pix*SCREENBWIDE;
 			}
 
-			if(startpix | 1 < endpix)
+			if((startpix | 1) < endpix)
 			{
-				// ror al, 1
-				*code++ = 0xd0;
-				*code++ = 0xc8;
-				*code++ = 0xd0;
+				// Rotate the dither pattern for odd lines
+				// ror al, cl
+				*code++ = 0xd2;
 				*code++ = 0xc8;
 
+				// Draw odd lines
 				for (pix=(startpix | 0x1);pix<endpix;pix+=2)
 				{
 					if (pix >= viewheight)
@@ -458,7 +460,6 @@ void near ScaleLine (void)
 {
 asm	mov	cx,WORD PTR [linescale+2]
 asm	mov	es,cx						// segment of scaler
-asm mov dx,[cgabackbufferseg]
 
 asm	mov bp,WORD PTR [linecmds]
 
@@ -485,7 +486,13 @@ asm	add	bp,6						// next segment list
 asm	mov	ax,ss:[cgabackbufferseg]
 asm	mov	es,ax
 
+asm mov ax, ss:[dithershift]		// Set up dither shift value
+asm mov ah, cl
+asm mov cl, al
+
 asm	call ss:[linescale]				// scale the segment of pixels
+
+asm mov cl, ah						// Restore CL
 
 asm	mov	es,cx						// segment of scaler
 asm	mov	BYTE PTR es:[bx],dl			// unpatch the RETF

@@ -28,6 +28,7 @@
 =============================================================================
 */
 
+extern int dithershift;
 
 #ifdef DEBUGWALLS
 unsigned screenloc[3]= {0,0,0};
@@ -460,6 +461,8 @@ nomore:
 #else
 void	near ScalePost (void)		// CGA version
 {
+	asm mov cx,[dithershift]
+	
 	asm mov ax,[cgabackbufferseg]
 	asm	mov	es,ax
 
@@ -482,41 +485,9 @@ heightok:
 	asm	shr	di,1						// 
 	asm	add	di,[screenofs]
 
-	//asm	and	bx,3
-	//asm	shl	bx,1						// bx = pixel*8+pixwidth
-	//asm	shl	bx,1						// 
-	//asm	shl	bx,1						// 
-	//asm	add	bx,[postwidth]
-
-	//asm	mov	al,BYTE PTR [mapmasks1-1+bx]	// -1 because no widths of 0
-	//asm	mov	dx,SC_INDEX+1
-	//asm	out	dx,al						// set bit mask register
 	asm	lds	si,DWORD PTR [postsource]
 	asm	call DWORD PTR [bp]				// scale the line of pixels
 
-	//asm	mov	al,BYTE PTR [ss:mapmasks2-1+bx]   // -1 because no widths of 0
-	//asm	or	al,al
-	//asm	jz	nomore
-	asm jmp nomore
-	//
-	// draw a second byte for vertical strips that cross two bytes
-	//
-	asm	inc	di
-	//asm	out	dx,al						// set bit mask register
-	asm	call DWORD PTR [bp]				// scale the line of pixels
-
-	asm	mov	al,BYTE PTR [ss:mapmasks3-1+bx]	// -1 because no widths of 0
-	asm	or	al,al
-	asm	jz	nomore
-	//
-	// draw a third byte for vertical strips that cross three bytes
-	//
-	asm	inc	di
-	//asm	out	dx,al						// set bit mask register
-	asm	call DWORD PTR [bp]				// scale the line of pixels
-
-
-nomore:
 	asm	mov	ax,ss
 	asm	mov	ds,ax
 }

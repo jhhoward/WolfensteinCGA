@@ -1294,7 +1294,7 @@ void VL_SetCGAMode(void)
 
 void VL_BlitCGA(void)
 {
-	#if 0
+	#if 1
 	asm mov dx, 100
 	asm mov si, 0
 	asm mov di, 0
