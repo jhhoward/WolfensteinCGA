@@ -99,12 +99,18 @@ void VW_DrawPropString (char far *string)
 	int		width,step,height,i;
 	byte	far *source, far *dest, far *origdest;
 	byte	ch,mask;
+	
+	int y;
+	byte far *srcptr;
+	byte far *destptr;
+	byte pixmask;
 
 	font = (fontstruct far *)grsegs[STARTFONT+fontnumber];
 	height = bufferheight = font->height;
 	dest = origdest = MK_FP(cgabackbufferseg,ylookup[py]+(px>>2));
 	mask = 1<<(px&3);
 
+	pixmask = 0xc0 >> ((px & 3) << 1);
 
 	while ((ch = *string++)!=0)
 	{
@@ -113,7 +119,7 @@ void VW_DrawPropString (char far *string)
 		while (width--)
 		{
 			//VGAMAPMASK(mask);
-
+#if 0
 asm	mov	ah,[BYTE PTR fontcolor]
 asm	mov	bx,[step]
 asm	mov	cx,[height]
@@ -134,6 +140,22 @@ asm	loop	vertloop
 asm	mov	ax,ss
 asm	mov	ds,ax
 
+#else
+			y = height;
+			srcptr = source;
+			destptr = dest;
+			while(y--)
+			{
+				if(*srcptr)
+				{
+					*destptr &= ~pixmask;
+					*destptr |= (pixmask & fontcolor);
+				}
+				srcptr += step;
+				destptr += linewidth;
+			}
+#endif
+
 			source++;
 			px++;
 			mask <<= 1;
@@ -141,6 +163,11 @@ asm	mov	ds,ax
 			{
 				mask = 1;
 				dest++;
+			}
+			pixmask >>= 2;
+			if(!pixmask)
+			{
+				pixmask = 0xc0;
 			}
 		}
 	}
@@ -448,12 +475,13 @@ void VW_UpdateScreen (void)
 void LatchDrawPic (unsigned x, unsigned y, unsigned picnum)
 {
 	unsigned wide, height, source;
-	return;
 	wide = pictable[picnum-STARTPICS].width;
 	height = pictable[picnum-STARTPICS].height;
 	source = latchpics[2+picnum-LATCHPICS_LUMP_START];
 
+#if WITH_VGA
 	VL_LatchToScreen (source,wide/4,height,x*8,y);
+#endif
 }
 
 

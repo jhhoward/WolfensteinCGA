@@ -80,6 +80,15 @@ void Quit (char *error);
 #define CHARWIDTH		2
 #define TILEWIDTH		4
 
+typedef enum
+{
+	CGA_MODE5,
+	CGA_MODE4,
+	CGA_COMPOSITE_MODE,
+	CGA_INVERSE_MONO,
+	TANDY_MODE
+} cgamode_t;
+
 //===========================================================================
 
 extern	unsigned	bufferofs;			// all drawing is reletive to this
@@ -94,7 +103,7 @@ extern	boolean		screenfaded;
 extern	unsigned	bordercolor;
 
 extern	unsigned	cgabackbufferseg;
-extern	boolean		usecomposite;
+extern	cgamode_t	cgamode;
 
 //===========================================================================
 

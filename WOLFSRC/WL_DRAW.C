@@ -1008,18 +1008,6 @@ unsigned vgaCeiling[]=
 #endif
 };
 
-unsigned rgbCgaCeilingFloor[]=
-{
-	0xc0c0, 0x0c0c, 0xcccc, 0x3333
-};
-
-unsigned compositeCgaCeilingFloor[] =
-{
-	0x8888, 0x8888, 0x5555, 0x5555
-};	
-
-unsigned* cgaCeilingFloor = rgbCgaCeilingFloor;
-
 /*
 =====================
 =
@@ -1394,10 +1382,34 @@ void WallRefresh (void)
 
 void CGAClearScreen()
 {
-	unsigned ceiling1 = cgaCeilingFloor[0];
-	unsigned ceiling2 = cgaCeilingFloor[1];
-	unsigned floor1 = cgaCeilingFloor[2];
-	unsigned floor2 = cgaCeilingFloor[3];
+	unsigned ceiling1, ceiling2;
+	unsigned floor1, floor2;
+	
+	switch(cgamode)
+	{
+		case CGA_MODE5:
+		case CGA_MODE4:
+			ceiling1 = 0xc0c0;
+			ceiling2 = 0x0c0c;
+			floor1 = 0xcccc;
+			floor2 = 0x3333;
+			break;
+		case CGA_COMPOSITE_MODE:
+			ceiling1 = ceiling2 = 0x8888;
+			floor1 = floor2 = 0x5555;
+			break;
+		case TANDY_MODE:
+			ceiling1 = 0x8080;
+			ceiling2 = 0x0808;
+			floor1 = floor2 = 0x8888;
+			break;
+		case CGA_INVERSE_MONO:
+			ceiling1 = 0xc0c0;
+			ceiling2 = 0x0c0c;
+			floor1 = 0xcccc;
+			floor2 = 0x3333;
+		break;
+	}
 	
 	//
 	// clear the screen
@@ -1526,8 +1538,6 @@ asm	rep stosw
 //
 // follow the walls from there to the right, drawwing as we go
 //
-	cgaCeilingFloor = usecomposite ? compositeCgaCeilingFloor : rgbCgaCeilingFloor;
-
 	CGAClearScreen();
 
 	//VGAClearScreen ();

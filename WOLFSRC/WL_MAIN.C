@@ -1152,6 +1152,8 @@ void DoJukebox(void)
 ==========================
 */
 
+//static char *GfxModeParmStrings[] = {"composite","classic","tandy","lcd",""};
+
 void InitGame (void)
 {
 	int                     i,x,y;
@@ -1161,11 +1163,23 @@ void InitGame (void)
 		virtualreality = true;
 	else
 		virtualreality = false;
-	
-	if (MS_CheckParm("composite"))
+
+	if (MS_CheckParm ("composite"))
 	{
-		usecomposite = true;
-	}
+		cgamode = CGA_COMPOSITE_MODE;
+	}		
+	if (MS_CheckParm ("classic"))
+	{
+		cgamode = CGA_MODE4;
+	}		
+	if (MS_CheckParm ("tandy"))
+	{
+		cgamode = TANDY_MODE;
+	}		
+	if (MS_CheckParm ("lcd"))
+	{
+		cgamode = CGA_INVERSE_MONO;
+	}		
 
 	MM_Startup ();                  // so the signon screen can be freed
 

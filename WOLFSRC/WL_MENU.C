@@ -24,6 +24,87 @@ void CP_ReadThis(void);
 #endif
 #endif
 
+
+MenuColors far menucolors[] =
+{
+	// CGA_MODE5,
+	{
+		0x2aa2,		// bordcolor
+		0x2aa2,		// bordcolor2
+		0x2288,		// bkgdcolor
+		0x0000,		// stripe
+		0x5555,		// readcolor
+		0xaaaa,		// readhcolor
+		0x0000,		// viewcolor	
+		0xffff,		// textcolor		
+		0xffff,		// highlight
+		0x5555,		// viewportborder
+		0x5555,		// pg13bg
+		0x0000,		// backcolor
+	},
+	// CGA_MODE4,
+	{
+		0x2aa2,		// bordcolor
+		0x2aa2,		// bordcolor2
+		0x2288,		// bkgdcolor
+		0x0000,		// stripe
+		0x5555,		// readcolor
+		0xaaaa,		// readhcolor
+		0x0000,		// viewcolor	
+		0xffff,		// textcolor		
+		0xffff,		// highlight
+		0x5555,		// viewportborder
+		0x5555,		// pg13bg
+		0x0000,		// backcolor
+	},
+	// CGA_COMPOSITE_MODE,
+	{
+		0x4444,		// bordcolor
+		0x4444,		// bordcolor2
+		0x4444,		// bkgdcolor
+		0x0000,		// stripe
+		0x5555,		// readcolor
+		0xaaaa,		// readhcolor
+		0x0000,		// viewcolor	
+		0xffff,		// textcolor		
+		0xffff,		// highlight
+		0x3333,		// viewportborder
+		0x3333,		// pg13bg
+		0x0000,		// backcolor
+	},
+	// CGA_INVERSE_MONO,
+	{
+		0x2aa2,		// bordcolor
+		0x2aa2,		// bordcolor2
+		0x4444,		// bkgdcolor
+		0x0000,		// stripe
+		0x5555,		// readcolor
+		0xaaaa,		// readhcolor
+		0x0000,		// viewcolor	
+		0xffff,		// textcolor		
+		0xffff,		// highlight
+		0x5555,		// viewportborder
+		0x5555,		// pg13bg
+		0x0000,		// backcolor
+	},
+	// TANDY_MODE
+	{
+		0x4cc4,		// bordcolor
+		0x4cc4,		// bordcolor2
+		0x4444,		// bkgdcolor
+		0x0000,		// stripe
+		0x5555,		// readcolor
+		0xaaaa,		// readhcolor
+		0x3333,		// viewcolor	
+		0x7777,		// textcolor		
+		0xffff,		// highlight
+		0x3333,		// viewportborder
+		0x3333,		// pg13bg
+		0x0000,		// backcolor
+	},
+};
+
+
 char far endStrings[9][80]=
 {
 #ifndef SPEAR
@@ -272,15 +353,15 @@ far CusMenu[]=
 
 int color_hlite[]={
    DEACTIVE,
-   HIGHLIGHT,
-   READHCOLOR,
+   _HIGHLIGHT,
+   _READHCOLOR,
    0x67
    },
 
    color_norml[]={
    DEACTIVE,
-   TEXTCOLOR,
-   READCOLOR,
+   _TEXTCOLOR,
+   _READCOLOR,
    0x6b
    };
 

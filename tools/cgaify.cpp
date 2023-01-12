@@ -7,6 +7,28 @@ using namespace std;
 
 #define USE_ALL_DITHERS 1
 
+enum CgaMode
+{
+	CGA_RGB,
+	CGA_COMPOSITE,
+	TANDY160,
+	NUM_GFX_MODES
+};
+
+const char* headFilename[] =
+{
+	"CGAHEAD.WL6",
+	"COMHEAD.WL6",
+	"TGAHEAD.WL6"
+};
+
+const char* gfxFilename[] =
+{
+	"CGAGRAPH.WL6",
+	"COMGRAPH.WL6",
+	"TGAGRAPH.WL6"
+};
+
 #define NUM_PATTERNS (sizeof(patterns) / 4)
 uint8_t patterns[] =
 {
@@ -191,6 +213,7 @@ uint8_t cgaPalette[] =
 
 uint8_t convertLUT[256];
 uint8_t convertLUTComposite[256];
+uint8_t convertLUTTandy[256];
 
 uint8_t wolfPalette[256 * 3];
 
@@ -346,6 +369,18 @@ void GenerateCGAPaletteRGB()
 			cgaPatternRGB[index * 3 + 2] = (uint8_t) blue;
 			
 			cgaPatternRGBWeights[index] = (x == y) ? 1 : 3;
+			
+			int pairDistance = 0;
+			for(int n = 0; n < 3; n++)
+			{
+				int dist = cgaPalette[x * 3 + n] - cgaPalette[y * 3 + n];
+				pairDistance += dist * dist;
+			}
+			if(pairDistance > 240 * 240)
+			{
+				cgaPatternRGBWeights[index] = -1;	
+			}
+			
 		}
 	}
 
@@ -406,6 +441,10 @@ void GenerateLUT()
 //			int compositeMatch = FindClosestPaletteEntry(rgb, compositePalette, 16);
 //			pattern = (uint8_t)(compositeMatch | (compositeMatch << 4));
 			convertLUTComposite[index] = pattern;
+			
+			int tandyMatch = FindClosestPaletteEntry(rgb, cgaPatternRGB, 256, cgaPatternRGBWeights);
+			pattern = (uint8_t)(tandyMatch);
+			convertLUTTandy[index] = pattern;
 		}
 	}
 }
@@ -476,7 +515,7 @@ struct GraphChunk
 	uint32_t headerOffset;
 };
 
-void ProcessGraphics()
+void ProcessGraphics(CgaMode gfxMode)
 {
 	FILE* dictionaryFile = fopen("VGADICT.WL6", "rb");
 	if(!dictionaryFile)
@@ -640,7 +679,32 @@ void ProcessGraphics()
 
 						uint8_t* rgb = &wolfPalette[inputPixel * 3];
 
-						if (1)
+						if(gfxMode == TANDY160)
+						{
+							if((plane & 1) == 0)
+							{
+								uint8_t rgbmerge[3];
+								int planeIndex2 = (picmetadata->height * picmetadata->width / 4) * (plane + 1) + y * (picmetadata->width / 4) + x;
+								uint8_t inputPixel2 = picData[planeIndex2];
+								uint8_t* rgb2 = &wolfPalette[inputPixel2 * 3];
+								
+								rgbmerge[0] = (rgb[0] + rgb2[0]) / 2;
+								rgbmerge[1] = (rgb[1] + rgb2[1]) / 2;
+								rgbmerge[2] = (rgb[2] + rgb2[2]) / 2;
+
+								int patternMatch = FindClosestPaletteEntry(rgbmerge, cgaPalette, 16);
+								if(plane == 0)
+								{
+									pixels |= (patternMatch << 4);
+								}
+								else if(plane == 2)
+								{
+									pixels |= (patternMatch);
+								}
+							}
+							
+						}
+						else if (gfxMode == CGA_RGB)
 						{
 							int patternMatch = FindClosestPaletteEntry(rgb, patternsRGB, NUM_PATTERNS, patternsRGBWeights);
 							int patternIndex = 0;
@@ -654,16 +718,26 @@ void ProcessGraphics()
 								patternIndex = patterns[patternMatch * 4 + plane];
 							}
 
-							patternIndex = FindClosestPaletteEntry(rgb, palette, 4);
+							//patternIndex = FindClosestPaletteEntry(rgb, palette, 4);
 
 							pixels |= patternIndex << ((3 - plane) * 2);
 						}
-						else if(1)
+						else if(gfxMode == CGA_COMPOSITE)
 						{
 							int patternMatch = FindClosestPaletteEntry(rgb, compositePalette, 16);
 							uint8_t doubled = patternMatch | (patternMatch << 4);
-							uint8_t mask = 0x2 << ((3 - plane) * 2);
+							
+							uint8_t mask = 0xc0 >> (plane * 2);
 							pixels |= (mask & doubled);
+							/*if(plane == 0)
+							{
+								pixels |= (patternMatch << 4);
+							}
+							else if(plane == 2)
+							{
+								pixels |= patternMatch;
+							}*/
+							
 						}
 						else
 						{
@@ -714,7 +788,7 @@ void ProcessGraphics()
 		}
 	}
 
-	FILE* graphicsFileOut = fopen("CGAGRAPH.WL6", "wb");
+	FILE* graphicsFileOut = fopen(gfxFilename[gfxMode], "wb");
 	uint32_t totalGraphicsFileLength = 0;
 	for (int n = 0; n < numChunks; n++)
 	{
@@ -728,7 +802,7 @@ void ProcessGraphics()
 	fwrite(grhuffman, sizeof(grhuffman), 1, dictFileOut);
 	fclose(dictFileOut);
 
-	FILE* graphicsHeadOut = fopen("CGAHEAD.WL6", "wb");
+	FILE* graphicsHeadOut = fopen(headFilename[gfxMode], "wb");
 	for (int n = 0; n < numChunks; n++)
 	{
 		uint32_t offset = chunks[n].headerOffset;
@@ -760,14 +834,18 @@ int main(int argc, char** argv)
 	GenerateCGAPaletteRGB();
 
 	GenerateLUT();
-	
-	ProcessGraphics();
-	
-	if(argc == 2)
+
+	for(int n = 0; n < NUM_GFX_MODES; n++)
 	{
-		FILE* fs = fopen(argv[1], "rb");
+		ProcessGraphics((CgaMode) n);
+	}
+	
+	//if(argc == 2)
+	{
+		//FILE* fs = fopen(argv[1], "rb");
 		//FILE* fo = fopen("CSWAP.WL6", "wb");
 		//FILE* fx = fopen("XSWAP.WL6", "wb");
+		FILE* fs = fopen("VSWAP.WL6", "rb");
 		
 		if(fs)
 		{
@@ -779,6 +857,7 @@ int main(int argc, char** argv)
 			
 			GenerateDataFile("XSWAP.WL6", data, dataSize, convertLUTComposite);
 			GenerateDataFile("CSWAP.WL6", data, dataSize, convertLUT);
+			GenerateDataFile("TSWAP.WL6", data, dataSize, convertLUTTandy);
 			
 			fclose(fs);
 			

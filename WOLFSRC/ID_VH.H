@@ -1,6 +1,6 @@
 // ID_VH.H
 
-
+#ifdef WITH_VGA
 #define WHITE			15			// graphics mode independant colors
 #define BLACK			0
 #define FIRSTCOLOR		1
@@ -9,6 +9,16 @@
 #define F_BLACK			0
 #define F_FIRSTCOLOR	1
 #define F_SECONDCOLOR	12
+#else
+#define WHITE			0xffff			// graphics mode independant colors
+#define BLACK			0
+#define FIRSTCOLOR		1
+#define SECONDCOLOR		12
+#define F_WHITE			0xffff
+#define F_BLACK			0
+#define F_FIRSTCOLOR	1
+#define F_SECONDCOLOR	12
+#endif
 
 //===========================================================================
 

@@ -491,9 +491,14 @@ PML_OpenPageFile(void)
 	word			far *lengthptr;
 	PageListStruct	far *page;
 
-	if(usecomposite)
+	switch(cgamode)
 	{
+		case CGA_COMPOSITE_MODE:
 		PageFileName[0] = 'X';
+		break;
+		case TANDY_MODE:
+		PageFileName[0] = 'T';
+		break;
 	}
 	
 	PageFile = open(PageFileName,O_RDONLY + O_BINARY);

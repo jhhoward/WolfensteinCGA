@@ -73,7 +73,20 @@ void SetupScaling (int maxscaleheight)
 #ifdef WITH_VGA
 	dithershift = 0;
 #else
-	dithershift = usecomposite ? 4 : 2;
+	switch(cgamode)
+	{
+		case CGA_MODE4:
+		case CGA_MODE5:
+		dithershift = 2;
+		break;
+		case CGA_INVERSE_MONO:
+		dithershift = 1;
+		break;
+		case TANDY_MODE:
+		case CGA_COMPOSITE_MODE:
+		dithershift = 4;
+		break;
+	}
 	if (MS_CheckParm("nodither"))
 	{
 		dithershift = 0;

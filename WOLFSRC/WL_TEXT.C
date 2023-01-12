@@ -25,8 +25,6 @@ TEXT FORMATTING COMMANDS
 =============================================================================
 */
 
-#define BACKCOLOR		0x11
-
 
 #define WORDLIMIT		80
 #define FONTHEIGHT		10

@@ -431,6 +431,7 @@ void CAL_HuffExpand (byte huge *source, byte huge *dest,
   dest++;
   dest--;
 
+#ifdef WITH_VGA
   if (screenhack)
   {
 	mapmask = 1;
@@ -439,6 +440,7 @@ asm	mov	ax,SC_MAPMASK + 256
 asm	out	dx,ax
 	length >>= 2;
   }
+#endif
 
   sourceseg = FP_SEG(source);
   sourceoff = FP_OFF(source);
@@ -506,6 +508,7 @@ asm	jne	expandshort
 //
 // perform screenhack if needed
 //
+#ifdef WITH_VGA
 asm	test	[screenhack],1
 asm	jz	notscreen
 asm	shl	[mapmask],1
@@ -520,6 +523,7 @@ asm	mov	ax,[endoff]
 asm	jmp	expandshort
 
 notscreen:;
+#endif
 	}
 	else
 	{
@@ -876,6 +880,17 @@ void CAL_SetupGrFile (void)
 //
 // load ???dict.ext (huffman dictionary for graphics files)
 //
+	switch(cgamode)
+	{
+		case CGA_COMPOSITE_MODE:
+		memcpy(gheadname, "COM", 3);
+		memcpy(gfilename, "COM", 3);
+		break;
+		case TANDY_MODE:
+		memcpy(gheadname, "TGA", 3);
+		memcpy(gfilename, "TGA", 3);
+		break;
+	}
 
 	strcpy(fname,gdictname);
 	strcat(fname,extension);
@@ -1408,7 +1423,14 @@ void CA_CacheScreen (int chunk)
 // allocate final space, decompress it, and free bigbuffer
 // Sprites need to have shifts made and various other junk
 //
+#ifdef WITH_VGA
 	CAL_HuffExpand (source,MK_FP(SCREENSEG,bufferofs),expanded,grhuffman,true);
+#else
+	if(expanded > 320*50)
+		expanded = 320*50;
+	expanded = 320 * 50;
+	CAL_HuffExpand (source,MK_FP(cgabackbufferseg,0),expanded,grhuffman,false);
+#endif
 	VW_MarkUpdateBlock (0,0,319,199);
 	MM_FreePtr(&bigbufferseg);
 }

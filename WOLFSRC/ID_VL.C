@@ -28,7 +28,7 @@ boolean		fastpalette;				// if true, use outsb to set
 
 byte		far	palette1[256][3],far palette2[256][3];
 
-boolean		usecomposite = false;
+cgamode_t	cgamode = CGA_MODE5;
 
 unsigned	cgabackbufferseg;
 memptr 		cgabackbuffer;
@@ -507,8 +507,10 @@ void VL_FadeOut (int start, int end, int red, int green, int blue, int steps)
 	VL_FillPalette (red,green,blue);
 	
 #else
-	if(usecomposite)
+	
+	switch(cgamode)
 	{
+		case CGA_COMPOSITE_MODE:
 		asm mov dx,0x3d9
 		asm mov al,0x7
 		asm out dx,al
@@ -524,9 +526,9 @@ void VL_FadeOut (int start, int end, int red, int green, int blue, int steps)
 		asm mov dx,0x3d9
 		asm mov al,0x0
 		asm out dx,al
-	}
-	else
-	{
+		break;
+		
+		case CGA_MODE5:
 		asm mov dx,0x3d9
 		asm mov al,0x20
 		asm out dx,al
@@ -554,6 +556,10 @@ void VL_FadeOut (int start, int end, int red, int green, int blue, int steps)
 		asm int 0x10
 		asm mov bx, 0x0001
 		asm int 0x10
+		break;
+		
+		default:
+		break;
 	}
 #endif
 
@@ -601,8 +607,9 @@ void VL_FadeIn (int start, int end, byte far *palette, int steps)
 	VL_SetPalette (palette);
 	
 #else
-	if(usecomposite)
+	switch(cgamode)
 	{
+		case CGA_COMPOSITE_MODE:
 		asm mov dx,0x3d9
 		asm mov al,0x8
 		asm out dx,al
@@ -618,9 +625,9 @@ void VL_FadeIn (int start, int end, byte far *palette, int steps)
 		asm mov dx,0x3d9
 		asm mov al,0xf
 		asm out dx,al
-	}
-	else
-	{
+		break;
+		
+		case CGA_MODE5:
 		asm mov dx,0x3d9
 		asm mov al,0x20
 		asm out dx,al
@@ -651,6 +658,10 @@ void VL_FadeIn (int start, int end, byte far *palette, int steps)
 		asm int 0x10
 		asm mov bx, 0x3b01
 		asm int 0x10
+		break;
+		
+		default:
+		break;
 	}
 #endif
 	screenfaded = false;
@@ -1261,16 +1272,17 @@ void VL_SizeTile8String (char *str, int *width, int *height)
 
 void VL_SetCGAMode(void)
 {
-	if(usecomposite)
+	switch(cgamode)
 	{
+		case CGA_COMPOSITE_MODE:
 		asm mov ax, 0x0006
 		asm int 0x10
 		asm mov dx, 0x3d8
 		asm mov al, 0x1a
 		asm out dx, al
-	}
-	else
-	{
+		break;
+		
+		case CGA_MODE5:
 		asm mov ax, 0x0005
 		asm int 0x10
 		
@@ -1282,6 +1294,22 @@ void VL_SetCGAMode(void)
 		asm int 0x10
 		asm mov bx, 0x3b01
 		asm int 0x10
+		break;
+		
+		case CGA_MODE4:
+		asm mov ax, 0x0004
+		asm int 0x10
+		break;
+		
+		case CGA_INVERSE_MONO:
+		asm mov ax, 0x0006
+		asm int 0x10
+		break;
+		
+		case TANDY_MODE:
+		asm mov ax, 0x0008
+		asm int 0x10
+		break;
 	}
 
 	MM_GetPtr (&cgabackbuffer,0x8000);
@@ -1328,17 +1356,18 @@ blitlines:
 
 void VL_TintColor(byte color)
 {
-	if(usecomposite)
+	switch(cgamode)
 	{
+		case CGA_COMPOSITE_MODE:
 		if(!color)
 			color = 0xf;
 		
 		asm mov dx, 0x3d9
 		asm mov al, [color]
 		asm out dx, al
-	}
-	else
-	{
+		break;
+		
+		case CGA_MODE5:
 		asm mov dx, 0x3d9
 		asm mov al, [color]
 		asm or al, 0x30
@@ -1349,6 +1378,18 @@ void VL_TintColor(byte color)
 		asm mov bl, 0
 		asm mov bh, [color]
 		asm int 0x10
+		break;
+		
+		case CGA_MODE4:
+		case TANDY_MODE:
+		asm mov ax, 0x0b00
+		asm mov bh, 0
+		asm mov bl, [color]
+		asm int 0x10
+		break;
+		
+		default:
+		break;
 	}
 }
 

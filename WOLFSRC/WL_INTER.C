@@ -158,7 +158,7 @@ void Victory (void)
 #endif
 
 
-	VWB_Bar (0,0,320,200-STATUSLINES,127);
+	VWB_Bar (0,0,320,200-STATUSLINES,VIEWPORTBORDER);
 #ifdef JAPAN
 #ifndef JAPDEMO
 	CA_CacheGrChunk(C_ENDRATIOSPIC);
@@ -310,15 +310,9 @@ void Victory (void)
 void PG13 (void)
 {
 	int backgroundColor;
-	
-#ifdef WITH_VGA
-	backgroundColor = 0x82;
-#else
-	backgroundColor = 0x55;
-#endif
-	
+		
 	VW_FadeOut();
-	VWB_Bar(0,0,320,200,backgroundColor);			// background
+	VWB_Bar(0,0,320,200,PG13BG);			// background
 
 	CA_CacheGrChunk (PG13PIC);
 	VWB_DrawPic (216,110,PG13PIC);
@@ -565,7 +559,7 @@ void LevelCompleted (void)
 
 	CacheLump(LEVELEND_LUMP_START,LEVELEND_LUMP_END);
 	ClearSplitVWB ();			// set up for double buffering in split screen
-	VWB_Bar (0,0,320,200-STATUSLINES,127);
+	VWB_Bar (0,0,320,200-STATUSLINES,VIEWPORTBORDER);
 	StartCPMusic(ENDLEVEL_MUS);
 
 //
@@ -986,8 +980,10 @@ boolean PreloadUpdate(unsigned current, unsigned total)
 	w = ((long)w * current) / total;
 	if (w)
 	{
-	 VWB_Bar(WindowX + 5,WindowY + WindowH - 3,w,2,0x37); //SECONDCOLOR);
-	 VWB_Bar(WindowX + 5,WindowY + WindowH - 3,w-1,1,0x32);
+	 //VWB_Bar(WindowX + 5,WindowY + WindowH - 3,w,2,0x37); //SECONDCOLOR);
+	 //VWB_Bar(WindowX + 5,WindowY + WindowH - 3,w-1,1,0x32);
+	 VWB_Bar(WindowX + 5,WindowY + WindowH - 3,w,2,0x4444); //SECONDCOLOR);
+	 VWB_Bar(WindowX + 5,WindowY + WindowH - 3,w-1,1,0xffff);
 
 	}
 	VW_UpdateScreen();
@@ -1005,7 +1001,7 @@ void PreloadGraphics(void)
 	DrawLevel ();
 	ClearSplitVWB ();			// set up for double buffering in split screen
 
-	VWB_Bar (0,0,320,200-STATUSLINES,127);
+	VWB_Bar (0,0,320,200-STATUSLINES,VIEWPORTBORDER);
 
 	LatchDrawPic (20-14,80-3*8,GETPSYCHEDPIC);
 
