@@ -507,7 +507,10 @@ void VL_FadeOut (int start, int end, int red, int green, int blue, int steps)
 	VL_FillPalette (red,green,blue);
 	
 #else
-	
+	if(screenfaded)
+	{
+		return;
+	}
 	switch(cgamode)
 	{
 		case CGA_COMPOSITE_MODE:
@@ -607,6 +610,10 @@ void VL_FadeIn (int start, int end, byte far *palette, int steps)
 	VL_SetPalette (palette);
 	
 #else
+	if(!screenfaded)
+	{
+		return;
+	}
 	switch(cgamode)
 	{
 		case CGA_COMPOSITE_MODE:
@@ -1303,6 +1310,11 @@ void VL_SetCGAMode(void)
 		
 		case CGA_INVERSE_MONO:
 		asm mov ax, 0x0006
+		asm int 0x10
+		asm mov ax, 0x1000
+		asm mov bx, 0x1700
+		asm int 0x10
+		asm mov bx, 0x0801
 		asm int 0x10
 		break;
 		

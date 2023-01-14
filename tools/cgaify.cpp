@@ -12,6 +12,7 @@ enum CgaMode
 	CGA_RGB,
 	CGA_COMPOSITE,
 	TANDY160,
+	INVERT_MONO,
 	NUM_GFX_MODES
 };
 
@@ -19,14 +20,16 @@ const char* headFilename[] =
 {
 	"CGAHEAD.WL6",
 	"COMHEAD.WL6",
-	"TGAHEAD.WL6"
+	"TGAHEAD.WL6",
+	"LCDHEAD.WL6"
 };
 
 const char* gfxFilename[] =
 {
 	"CGAGRAPH.WL6",
 	"COMGRAPH.WL6",
-	"TGAGRAPH.WL6"
+	"TGAGRAPH.WL6",
+	"LCDGRAPH.WL6"
 };
 
 #define NUM_PATTERNS (sizeof(patterns) / 4)
@@ -214,8 +217,47 @@ uint8_t cgaPalette[] =
 uint8_t convertLUT[256];
 uint8_t convertLUTComposite[256];
 uint8_t convertLUTTandy[256];
+uint8_t convertLUTLCD[256];
 
 uint8_t wolfPalette[256 * 3];
+
+#define NUM_LCD_PATTERNS 9
+uint8_t lcdPatterns[NUM_LCD_PATTERNS] = 
+{
+	0xff, 0x7f, 0x77, 0x57, 0x55, 0x15, 0x11, 0x1, 0x00
+};
+uint8_t lcdPatternsShifted[NUM_LCD_PATTERNS] = 
+{
+	0xff, 0xf7, 0xdd, 0xda, 0xaa, 0x4a, 0x44, 0x40, 0x00
+};
+
+int picsToDither[] =
+{ 0, 1, 2, 7, 23, 24, 25, 26, 40, 81, 82, 84, 87, 130, 131 };
+
+bool ShouldDither(int chunkNumber)
+{
+	for(int n = 0; n < sizeof(picsToDither); n++)
+	{
+		if(picsToDither[n] == chunkNumber - 3)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+int MatchLCDPattern(uint8_t* rgb)
+{
+	float grey = 0.316f * rgb[0] + 0.46f * rgb[1] + 0.2235f * rgb[2];
+//	float grey = 0.299f * rgb[0] + 0.587f * rgb[1] + 0.114f * rgb[2];
+//	float grey = 0.333f * rgb[0] + 0.333f * rgb[1] + 0.333f * rgb[2];
+	int index = (int)((grey * NUM_LCD_PATTERNS) / 255.0f);
+	if(index >= NUM_LCD_PATTERNS)
+	{
+		index = NUM_LCD_PATTERNS - 1;
+	}
+	return index;
+}
 
 void GammaAdjust(uint8_t* rgb)
 {
@@ -340,7 +382,7 @@ void GenerateCompositePaletteRGB()
 		}
 	}
 	
-	printf("Num composite patterns: %d\n", numCompositePatterns);
+	//printf("Num composite patterns: %d\n", numCompositePatterns);
 	
 
 	vector<uint8_t> palettePixels;
@@ -445,12 +487,15 @@ void GenerateLUT()
 			int tandyMatch = FindClosestPaletteEntry(rgb, cgaPatternRGB, 256, cgaPatternRGBWeights);
 			pattern = (uint8_t)(tandyMatch);
 			convertLUTTandy[index] = pattern;
+			
+			convertLUTLCD[index] = lcdPatterns[MatchLCDPattern(rgb)];
 		}
 	}
 }
 
 void GenerateDataFile(const char* filename, uint8_t* data, int dataLength, uint8_t* conversionTable)
 {
+	printf("Generating %s..\n", filename);
 	uint8_t* newData = new uint8_t[dataLength];
 	memcpy(newData, data, dataLength);
 	data = newData;
@@ -517,6 +562,8 @@ struct GraphChunk
 
 void ProcessGraphics(CgaMode gfxMode)
 {
+	printf("Generating %s..\n", gfxFilename[gfxMode]);
+	
 	FILE* dictionaryFile = fopen("VGADICT.WL6", "rb");
 	if(!dictionaryFile)
 	{
@@ -537,7 +584,7 @@ void ProcessGraphics(CgaMode gfxMode)
 	fseek(headFile, 0, SEEK_END);
 	long headerSize = ftell(headFile);
     fseek(headFile, 0, SEEK_SET);
-	printf("Header file size: %d bytes\n", headerSize);
+	//printf("Header file size: %d bytes\n", headerSize);
 	
 	if(headerSize % 3)
 	{
@@ -549,7 +596,7 @@ void ProcessGraphics(CgaMode gfxMode)
 	
 	GraphChunk* chunks = new GraphChunk[numChunks];
 	
-	printf("Num chunks: %d\n", numChunks);
+	//printf("Num chunks: %d\n", numChunks);
 	
 	for(int n = 0; n < numChunks + 1; n++)
 	{
@@ -571,7 +618,7 @@ void ProcessGraphics(CgaMode gfxMode)
 			chunks[n - 1].dataSize = offset - chunks[n - 1].headerOffset;
 		}
 		
-		printf("Chunk %d: offset: %x\n", n, offset);
+		//printf("Chunk %d: offset: %x\n", n, offset);
 	}
 	
 	fclose(headFile);
@@ -606,14 +653,14 @@ void ProcessGraphics(CgaMode gfxMode)
 		}
 	}
 	
-	printf("Graphics size: %d bytes\n", graphicsLength);
+	//printf("Graphics size: %d bytes\n", graphicsLength);
 	
 	pictabletype* pictable = (pictabletype*)(chunks[0].uncompressedData);
 	
 	for(int n = STARTPICS; n < STARTPICS + NUMPICS; n++)
 	{
 		pictabletype* picmetadata = &pictable[n - STARTPICS];
-		printf("%d : %d x %d (%d bytes)\n", n, picmetadata->width, picmetadata->height, chunks[n].uncompressedSize);
+		//printf("%d : %d x %d (%d bytes)\n", n, picmetadata->width, picmetadata->height, chunks[n].uncompressedSize);
 		
 		//if(n == 0)
 		if(0)
@@ -704,6 +751,13 @@ void ProcessGraphics(CgaMode gfxMode)
 							}
 							
 						}
+						else if(gfxMode == INVERT_MONO)
+						{
+							int patternMatch = MatchLCDPattern(rgb);
+							uint8_t pattern = (y & 1) ? lcdPatternsShifted[patternMatch] : lcdPatterns[patternMatch];
+							uint8_t mask = 0xc0 >> (plane * 2);
+							pixels |= (mask & pattern);
+						}
 						else if (gfxMode == CGA_RGB)
 						{
 							int patternMatch = FindClosestPaletteEntry(rgb, patternsRGB, NUM_PATTERNS, patternsRGBWeights);
@@ -718,7 +772,10 @@ void ProcessGraphics(CgaMode gfxMode)
 								patternIndex = patterns[patternMatch * 4 + plane];
 							}
 
-							//patternIndex = FindClosestPaletteEntry(rgb, palette, 4);
+							if(!ShouldDither(n))
+							{
+								patternIndex = FindClosestPaletteEntry(rgb, palette, 4);
+							}
 
 							pixels |= patternIndex << ((3 - plane) * 2);
 						}
@@ -754,7 +811,7 @@ void ProcessGraphics(CgaMode gfxMode)
 			int bufferSpace = picmetadata->width * picmetadata->height * 4;
 			uint8_t* newCompressedData = new uint8_t[bufferSpace];
 			uint32_t* ptr = (uint32_t*)(newCompressedData);
-			*ptr = picmetadata->width * picmetadata->height;
+			*ptr = (picmetadata->width / 4) * picmetadata->height;
 			long compressedDataSize = HuffCompress(newPicData, (picmetadata->width / 4) * picmetadata->height, newCompressedData + 4, bufferSpace - 4, grhuffman);
 
 			if (0)
@@ -827,6 +884,149 @@ void ProcessGraphics(CgaMode gfxMode)
 	fclose(graphicsHeadOut);
 }
 
+void GenerateSignon()
+{
+	vector<uint8_t> pixels;
+	unsigned width, height;
+
+	printf("Generating signon..\n");
+	
+	if(lodepng::decode(pixels, width, height, "signon.png"))
+	{
+		printf("Could not load signon.png\n");
+		exit(1);
+	}
+	
+	vector<uint8_t> output;
+	uint8_t buffer = 0;
+	
+	// RGB
+	for(int y = 0; y < height; y++)
+	{
+		for(int x = 0; x < width; x++)
+		{
+			uint8_t rgb[3];
+			rgb[0] = pixels[(y * width + x) * 4];
+			rgb[1] = pixels[(y * width + x) * 4 + 1];
+			rgb[2] = pixels[(y * width + x) * 4 + 2];
+			int match = FindClosestPaletteEntry(rgb, patternsRGB, NUM_PATTERNS, patternsRGBWeights);
+			
+			int patternIndex = x % 4;
+			int pixel;
+
+			if(y & 1)
+			{
+				pixel = patternsShifted[match * 4 + patternIndex];
+			}
+			else
+			{
+				pixel = patterns[match * 4 + patternIndex];
+			}
+			buffer |= (uint8_t)(pixel);
+			if((x % 4) == 3)
+			{
+				output.push_back(buffer);
+				buffer = 0;
+			}
+			else
+			{
+				buffer <<= 2;
+			}
+		}
+	}
+	
+	buffer = 0;
+	
+	// Composite
+	for(int y = 0; y < height; y++)
+	{
+		for(int x = 0; x < width; x++)
+		{
+			uint8_t rgb[3];
+			rgb[0] = pixels[(y * width + x) * 4];
+			rgb[1] = pixels[(y * width + x) * 4 + 1];
+			rgb[2] = pixels[(y * width + x) * 4 + 2];
+			int match = FindClosestPaletteEntry(rgb, compositePalette, 16);
+			
+			match |= (match << 4);
+			uint8_t mask = 0xc0 >> (2 * (x % 4));
+			
+			buffer |= (uint8_t)(match & mask);
+			if((x % 4) == 3)
+			{
+				output.push_back(buffer);
+				buffer = 0;
+			}
+		}
+	}
+
+	
+	buffer = 0;
+	// Tandy
+	for(int y = 0; y < height; y++)
+	{
+		for(int x = 0; x < width; x += 2)
+		{
+			uint8_t rgb[3];
+			rgb[0] = pixels[(y * width + x) * 4];
+			rgb[1] = pixels[(y * width + x) * 4 + 1];
+			rgb[2] = pixels[(y * width + x) * 4 + 2];
+			int match = FindClosestPaletteEntry(rgb, cgaPalette, 16);
+			
+			if((x % 4) == 0)
+			{
+				buffer |= (match << 4);
+			}
+			else if((x % 4) == 2)
+			{
+				buffer |= match;
+				output.push_back(buffer);
+				buffer = 0;
+			}
+		}
+	}
+	
+	buffer = 0;
+
+	// LCD
+	for(int y = 0; y < height; y++)
+	{
+		for(int x = 0; x < width; x++)
+		{
+			uint8_t rgb[3];
+			rgb[0] = pixels[(y * width + x) * 4];
+			rgb[1] = pixels[(y * width + x) * 4 + 1];
+			rgb[2] = pixels[(y * width + x) * 4 + 2];
+			int match = MatchLCDPattern(rgb);
+			uint8_t pattern = (y & 1) ? lcdPatternsShifted[match] : lcdPatterns[match];
+			uint8_t mask = 0xc0 >> (2 * (x % 4));
+			
+			buffer |= (uint8_t)(pattern & mask);
+			if((x % 4) == 3)
+			{
+				output.push_back(buffer);
+				buffer = 0;
+			}
+		}
+	}
+	
+	
+	FILE* fs = fopen("signon.c", "w");
+	
+	fprintf(fs, "unsigned char far signon[] = {\n");
+	for(int n = 0; n < output.size(); n++)
+	{
+		fprintf(fs, "0x%x", output[n]);
+		if(n < output.size() - 1)
+		{
+			fprintf(fs, ",");
+		}
+	}
+	fprintf(fs, "};\n");
+	
+	fclose(fs);
+}
+
 int main(int argc, char** argv)
 {
 	GeneratePatternsRGB();
@@ -840,12 +1040,20 @@ int main(int argc, char** argv)
 		ProcessGraphics((CgaMode) n);
 	}
 	
+	GenerateSignon();
+	
 	//if(argc == 2)
 	{
 		//FILE* fs = fopen(argv[1], "rb");
 		//FILE* fo = fopen("CSWAP.WL6", "wb");
 		//FILE* fx = fopen("XSWAP.WL6", "wb");
 		FILE* fs = fopen("VSWAP.WL6", "rb");
+		
+		if(!fs)
+		{
+			printf("Could not open VSWAP.WL6\n");
+			exit(1);
+		}
 		
 		if(fs)
 		{
@@ -858,6 +1066,7 @@ int main(int argc, char** argv)
 			GenerateDataFile("XSWAP.WL6", data, dataSize, convertLUTComposite);
 			GenerateDataFile("CSWAP.WL6", data, dataSize, convertLUT);
 			GenerateDataFile("TSWAP.WL6", data, dataSize, convertLUTTandy);
+			GenerateDataFile("LSWAP.WL6", data, dataSize, convertLUTLCD);
 			
 			fclose(fs);
 			

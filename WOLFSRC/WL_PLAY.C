@@ -77,6 +77,8 @@ memptr		demobuffer;
 int			controlx,controly;		// range from -100 to 100 per tic
 boolean		buttonstate[NUMBUTTONS];
 
+long timedemoframes = 0;
+long timedemoduration = 0;
 
 
 //===========================================================================
@@ -456,16 +458,24 @@ void PollControls (void)
 {
 	int		max,min,i;
 	byte	buttonbits;
-
 //
 // get timing info for last frame
 //
 	if (demoplayback)
 	{
-		while (TimeCount<lasttimecount+DEMOTICS)
-		;
-		TimeCount = lasttimecount + DEMOTICS;
-		lasttimecount += DEMOTICS;
+		if(timedemo)
+		{
+			timedemoduration += (TimeCount - lasttimecount);
+			
+			lasttimecount = TimeCount;
+		}
+		else
+		{
+			while (TimeCount<lasttimecount+DEMOTICS)
+			;
+			TimeCount = lasttimecount + DEMOTICS;
+			lasttimecount += DEMOTICS;
+		}
 		tics = DEMOTICS;
 	}
 	else if (demorecord)			// demo recording and playback needs
@@ -481,6 +491,7 @@ void PollControls (void)
 	}
 	else
 		CalcTics ();
+	
 
 	controlx = 0;
 	controly = 0;
@@ -1377,13 +1388,6 @@ think:
 */
 long funnyticount;
 
-void SetCGA(void)
-{
-	asm	mov	ax,0x0300
-	asm	int 0x10
-	exit(0);
-}
-
 void PlayLoop (void)
 {
 	int		give;
@@ -1468,6 +1472,10 @@ void PlayLoop (void)
 
 		if (demoplayback)
 		{
+			if(timedemo)
+			{
+				timedemoframes++;
+			}
 			if (IN_CheckAck ())
 			{
 				IN_ClearKeysDown ();
@@ -1484,8 +1492,27 @@ void PlayLoop (void)
 		}
 
 	}while (!playstate && !startgame);
-
+	
 	if (playstate != ex_died)
 		FinishPaletteShifts ();
+}
+
+void DumpTimeDemoStats(void)
+{
+	unsigned long fps;
+	int whole, fractional;
+	
+	ShutdownId ();
+	
+	if(timedemoduration > 0)
+	{
+		fps = (700 * timedemoframes) / timedemoduration;
+		whole = fps / 10;
+		fractional = fps - (whole * 10);
+		
+		printf("Demo frames: %lu\nTick duration: %lu\nFPS: %d.%d\n", timedemoframes, timedemoduration, whole, fractional);
+	}
+	
+	exit(1);
 }
 

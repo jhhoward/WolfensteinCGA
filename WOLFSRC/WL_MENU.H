@@ -50,6 +50,7 @@
 #define VIEWCOLOR	menucolors[cgamode].viewcolor
 #define TEXTCOLOR	menucolors[cgamode].textcolor
 #define HIGHLIGHT	menucolors[cgamode].highlight
+#define SIGNONFILL	menucolors[cgamode].signonfill
 #define _READCOLOR    0xffff
 #define _READHCOLOR    0xffff
 #define _VIEWCOLOR    0xffff
@@ -72,6 +73,7 @@ typedef struct {
 		unsigned viewportborder;
 		unsigned pg13bg;
 		unsigned backcolor;
+		unsigned signonfill;
 	} MenuColors; 
 	
 extern MenuColors far menucolors[];

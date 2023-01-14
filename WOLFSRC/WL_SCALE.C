@@ -16,6 +16,7 @@
 t_compscale _seg *scaledirectory[MAXSCALEHEIGHT+1];
 long			fullscalefarcall[MAXSCALEHEIGHT+1];
 
+boolean		usewiderendering;
 int			maxscale,maxscaleshl2;
 
 boolean	insetupscaling;
@@ -80,7 +81,7 @@ void SetupScaling (int maxscaleheight)
 		dithershift = 2;
 		break;
 		case CGA_INVERSE_MONO:
-		dithershift = 1;
+		dithershift = 3;
 		break;
 		case TANDY_MODE:
 		case CGA_COMPOSITE_MODE:
@@ -90,6 +91,10 @@ void SetupScaling (int maxscaleheight)
 	if (MS_CheckParm("nodither"))
 	{
 		dithershift = 0;
+	}
+	if (MS_CheckParm("wide"))
+	{
+		usewiderendering = true;
 	}
 #endif
 
@@ -183,6 +188,11 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 	long		fix,step;
 	unsigned	src,totalscaled,totalsize;
 	int			startpix,endpix,toppix,pix;
+	
+	if(usewiderendering)
+	{
+		height <<= 1;
+	}
 	
 	step = ((long)height<<16) / 64;
 	code = &work->code[0];

@@ -890,6 +890,10 @@ void CAL_SetupGrFile (void)
 		memcpy(gheadname, "TGA", 3);
 		memcpy(gfilename, "TGA", 3);
 		break;
+		case CGA_INVERSE_MONO:
+		memcpy(gheadname, "LCD", 3);
+		memcpy(gfilename, "LCD", 3);
+		break;
 	}
 
 	strcpy(fname,gdictname);

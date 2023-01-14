@@ -36,6 +36,7 @@
 //	Global variables
 		char		*abortprogram;
 		boolean		NoWait;
+		boolean		timedemo;
 		word		PrintX,PrintY;
 		word		WindowX,WindowY,WindowW,WindowH;
 

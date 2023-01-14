@@ -1404,10 +1404,10 @@ void CGAClearScreen()
 			floor1 = floor2 = 0x8888;
 			break;
 		case CGA_INVERSE_MONO:
-			ceiling1 = 0xc0c0;
-			ceiling2 = 0x0c0c;
-			floor1 = 0xcccc;
-			floor2 = 0x3333;
+			ceiling1 = 0xdddd;
+			ceiling2 = 0x7777;
+			floor1 = 0x5555;
+			floor2 = 0xaaaa;
 		break;
 	}
 	
@@ -1469,8 +1469,8 @@ void CGABlit()
 	asm mov dx, [viewheight]
 	asm shr dx, 1
 	asm mov si, [screenofs]
-	asm mov di, [screenofs]
-	
+	asm mov di, [cgascreenofs]
+		
 	asm mov bx, [viewwidth]
 	asm mov cl, 2
 	asm shr bx, cl				// bx is number of bytes to copy
@@ -1555,6 +1555,7 @@ asm	rep stosw
 // show screen and time last cycle
 //
 	CGABlit();
+	//VL_BlitCGA();
 
 /*
 	if (fizzlein)

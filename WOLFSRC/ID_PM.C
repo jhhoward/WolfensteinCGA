@@ -499,6 +499,9 @@ PML_OpenPageFile(void)
 		case TANDY_MODE:
 		PageFileName[0] = 'T';
 		break;
+		case CGA_INVERSE_MONO:
+		PageFileName[0] = 'L';
+		break;
 	}
 	
 	PageFile = open(PageFileName,O_RDONLY + O_BINARY);

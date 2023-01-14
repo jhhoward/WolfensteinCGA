@@ -53,6 +53,7 @@ int                     dirangle[9] = {0,ANGLES/8,2*ANGLES/8,3*ANGLES/8,4*ANGLES
 //
 fixed           focallength;
 unsigned        screenofs;
+unsigned		cgascreenofs;
 int             viewwidth;
 int             viewheight;
 int             centerx;
@@ -744,8 +745,22 @@ void SignonScreen (void)                        // VGA version
 		VL_MemToScreen (&introscn,320,200,0,0);
 		VW_SetScreen(0,0);
 #else
-		VL_MungePic (&introscn,320,200);
-		VL_MemToScreen (&introscn,320,200,0,0);
+		switch(cgamode)
+		{
+			case CGA_MODE4:
+			case CGA_MODE5:
+			VL_MemToScreen (&introscn,320,200,0,0);
+			break;
+			case CGA_COMPOSITE_MODE:
+			VL_MemToScreen (&introscn + 16000,320,200,0,0);
+			break;
+			case TANDY_MODE:
+			VL_MemToScreen (&introscn + 32000,320,200,0,0);
+			break;
+			case CGA_INVERSE_MONO:
+			VL_MemToScreen (&introscn + 48000,320,200,0,0);
+			break;
+		}
 		VL_BlitCGA();
 #endif
 	}
@@ -782,7 +797,8 @@ void FinishSignon (void)
 	PrintY = 190;
 
 	#ifndef JAPAN
-	SETFONTCOLOR(14,4);
+//	SETFONTCOLOR(14,4);
+	SETFONTCOLOR(0,0);
 
 	#ifdef SPANISH
 	US_CPrint ("Oprima una tecla");
@@ -792,19 +808,28 @@ void FinishSignon (void)
 
 	#endif
 
-	if (!NoWait)
+	#ifndef WITH_VGA
+	VL_BlitCGA();
+	#endif
+	
+	if (!NoWait && !timedemo)
 		IN_Ack ();
 
 	#ifndef JAPAN
 	VW_Bar (0,189,300,11,peekb(0xa000,0));
 
 	PrintY = 190;
-	SETFONTCOLOR(10,4);
+//	SETFONTCOLOR(10,4);
+	SETFONTCOLOR(0,0);
 
 	#ifdef SPANISH
 	US_CPrint ("pensando...");
 	#else
 	US_CPrint ("Working...");
+	#endif
+
+	#ifndef WITH_VGA
+	VL_BlitCGA();
 	#endif
 
 	#endif
@@ -1152,8 +1177,6 @@ void DoJukebox(void)
 ==========================
 */
 
-//static char *GfxModeParmStrings[] = {"composite","classic","tandy","lcd",""};
-
 void InitGame (void)
 {
 	int                     i,x,y;
@@ -1163,6 +1186,11 @@ void InitGame (void)
 		virtualreality = true;
 	else
 		virtualreality = false;
+
+	if (MS_CheckParm ("timedemo"))
+	{
+		timedemo = true;
+	}		
 
 	if (MS_CheckParm ("composite"))
 	{
@@ -1284,8 +1312,12 @@ close(profilehandle);
 	if (!virtualreality)
 		FinishSignon();
 
+#ifdef WITH_VGA
 	displayofs = PAGE1START;
 	bufferofs = PAGE2START;
+#else
+	VL_BlitCGA();
+#endif
 
 	if (virtualreality)
 	{
@@ -1311,6 +1343,7 @@ boolean SetViewSize (unsigned width, unsigned height)
 	centerx = viewwidth/2-1;
 	shootdelta = viewwidth/10;
 	screenofs = ((200-STATUSLINES-viewheight)/2*SCREENWIDTH+(320-viewwidth)/8);
+	cgascreenofs = ((200-STATUSLINES-viewheight)/4*SCREENWIDTH+(320-viewwidth)/8);
 //
 // calculate trace angles and projection constants
 //
@@ -1503,6 +1536,11 @@ void    DemoLoop (void)
 	#endif
 
 	StartCPMusic(INTROSONG);
+
+	if(timedemo)
+	{
+		PlayDemo(0);
+	}
 
 #ifndef JAPAN
 	if (!NoWait)

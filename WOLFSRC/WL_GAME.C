@@ -43,6 +43,8 @@ void SetupGameLevel (void);
 void DrawPlayScreen (void);
 void LoadLatchMem (void);
 void GameLoop (void);
+void DumpTimeDemoStats(void);
+
 
 /*
 =============================================================================
@@ -895,6 +897,10 @@ void DrawPlayScreen (void)
 	DrawKeys ();
 	DrawWeapon ();
 	DrawScore ();
+	
+#ifndef WITH_VGA
+	VW_UpdateScreen();
+#endif
 }
 
 
@@ -1085,6 +1091,11 @@ void PlayDemo (int demonumber)
 	fizzlein = true;
 
 	PlayLoop ();
+	
+	if(timedemo)
+	{
+		DumpTimeDemoStats();
+	}
 
 #ifdef DEMOSEXTERN
 	UNCACHEGRCHUNK(dems[demonumber]);

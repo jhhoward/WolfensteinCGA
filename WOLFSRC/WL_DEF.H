@@ -769,10 +769,13 @@ extern	byte far	*scalermemory;
 extern	fixed		focallength;
 extern	unsigned	viewangles;
 extern	unsigned	screenofs;
+extern	unsigned	cgascreenofs;
 extern	int		    viewwidth;
 extern	int			viewheight;
 extern	int			centerx;
 extern	int			shootdelta;
+
+extern	boolean		timedemo;
 
 extern	int			dirangle[9];
 

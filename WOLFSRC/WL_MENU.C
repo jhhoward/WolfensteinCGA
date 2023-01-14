@@ -41,6 +41,7 @@ MenuColors far menucolors[] =
 		0x5555,		// viewportborder
 		0x5555,		// pg13bg
 		0x0000,		// backcolor
+		0xffff,		// signonfill
 	},
 	// CGA_MODE4,
 	{
@@ -56,11 +57,12 @@ MenuColors far menucolors[] =
 		0x5555,		// viewportborder
 		0x5555,		// pg13bg
 		0x0000,		// backcolor
+		0xffff,		// signonfill
 	},
 	// CGA_COMPOSITE_MODE,
 	{
-		0x4444,		// bordcolor
-		0x4444,		// bordcolor2
+		0xcccc,		// bordcolor
+		0xcccc,		// bordcolor2
 		0x4444,		// bkgdcolor
 		0x0000,		// stripe
 		0x5555,		// readcolor
@@ -68,9 +70,10 @@ MenuColors far menucolors[] =
 		0x0000,		// viewcolor	
 		0xffff,		// textcolor		
 		0xffff,		// highlight
-		0x3333,		// viewportborder
+		0x1111,		// viewportborder
 		0x3333,		// pg13bg
 		0x0000,		// backcolor
+		0xdddd,		// signonfill
 	},
 	// CGA_INVERSE_MONO,
 	{
@@ -86,6 +89,7 @@ MenuColors far menucolors[] =
 		0x5555,		// viewportborder
 		0x5555,		// pg13bg
 		0x0000,		// backcolor
+		0xffff,		// signonfill
 	},
 	// TANDY_MODE
 	{
@@ -101,6 +105,7 @@ MenuColors far menucolors[] =
 		0x3333,		// viewportborder
 		0x3333,		// pg13bg
 		0x0000,		// backcolor
+		0xeeee,		// signonfill
 	},
 };
 
@@ -2962,6 +2967,7 @@ void CP_Quit(void)
 ////////////////////////////////////////////////////////////////////
 void IntroScreen(void)
 {
+#ifdef WITH_VGA
 #ifdef SPEAR
 
 #define MAINCOLOR	0x4f
@@ -2977,12 +2983,20 @@ void IntroScreen(void)
 #endif
 #define FILLCOLOR	14
 
+#else
+	#define MAINCOLOR	0xffff
+	#define EMSCOLOR	0xffff
+	#define XMSCOLOR	0xffff
+	#define FILLCOLOR	0xffff
+#endif
+
 	long memory,emshere,xmshere;
 	int i,num,ems[10]={100,200,300,400,500,600,700,800,900,1000},
 		xms[10]={100,200,300,400,500,600,700,800,900,1000},
 		main[10]={32,64,96,128,160,192,224,256,288,320};
 
 
+#ifdef WITH_VGA
 	//
 	// DRAW MAIN MEMORY
 	//
@@ -3013,24 +3027,61 @@ void IntroScreen(void)
 			if (xmshere>=xms[i])
 				VWB_Bar(129,163-8*i,6,5,XMSCOLOR-i);
 	}
+#else
+	//
+	// DRAW MAIN MEMORY
+	//
+	memory=(1023l+mminfo.nearheap+mminfo.farheap)/1024l;
+	for (i=0;i<10;i++)
+		if (memory>=main[i])
+			VWB_Bar(49,163-8*i,6,5,SIGNONFILL);
+
+
+	//
+	// DRAW EMS MEMORY
+	//
+	if (EMSPresent)
+	{
+		emshere=4l*EMSPagesAvail;
+		for (i=0;i<10;i++)
+			if (emshere>=ems[i])
+				VWB_Bar(89,163-8*i,6,5,SIGNONFILL);
+	}
+
+	//
+	// DRAW XMS MEMORY
+	//
+	if (XMSPresent)
+	{
+		xmshere=4l*XMSPagesAvail;
+		for (i=0;i<10;i++)
+			if (xmshere>=xms[i])
+				VWB_Bar(129,163-8*i,6,5,SIGNONFILL);
+	}
+#endif
 
 	//
 	// FILL BOXES
 	//
 	if (MousePresent)
-		VWB_Bar(164,82,12,2,FILLCOLOR);
+		VWB_Bar(164,82,12,2,SIGNONFILL);
 
 	if (JoysPresent[0] || JoysPresent[1])
-		VWB_Bar(164,105,12,2,FILLCOLOR);
+		VWB_Bar(164,105,12,2,SIGNONFILL);
 
 	if (AdLibPresent && !SoundBlasterPresent)
-		VWB_Bar(164,128,12,2,FILLCOLOR);
+		VWB_Bar(164,128,12,2,SIGNONFILL);
 
 	if (SoundBlasterPresent)
-		VWB_Bar(164,151,12,2,FILLCOLOR);
+		VWB_Bar(164,151,12,2,SIGNONFILL);
 
 	if (SoundSourcePresent)
-		VWB_Bar(164,174,12,2,FILLCOLOR);
+		VWB_Bar(164,174,12,2,SIGNONFILL);
+	
+#ifndef WITH_VGA
+	VL_BlitCGA();
+#endif
+
 }
 
 
