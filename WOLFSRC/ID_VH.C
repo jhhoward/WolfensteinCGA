@@ -403,6 +403,43 @@ void VWB_DrawPic (int x, int y, int chunknum)
 		VL_MemToScreen (grsegs[chunknum],width,height,x,y);
 }
 
+void VWB_DrawPicDirectToScreen (int x, int y, int chunknum)
+{
+	int	picnum = chunknum - STARTPICS;
+	unsigned width,height;
+	unsigned halfheight;
+	byte far *evenlines;
+	byte far *oddlines;
+	byte far *buffer;
+	unsigned off;
+	byte far* source = grsegs[chunknum];
+
+	width = pictable[picnum].width >> 2;
+	height = pictable[picnum].height;
+	halfheight = height >> 1;
+	
+	off = ylookup[y >> 1]+x;
+
+	evenlines = MK_FP(0xb800, off);
+	oddlines = MK_FP(0xba00, off);
+	buffer = MK_FP(cgabackbufferseg, ylookup[y]+x);
+		
+	while(halfheight--)
+	{
+		_fmemcpy (evenlines,source,width);
+		_fmemcpy (buffer,source,width);
+		evenlines+=linewidth;
+		buffer+=linewidth;
+		source+=width;
+
+		_fmemcpy (oddlines,source,width);
+		_fmemcpy (buffer,source,width);
+		buffer+=linewidth;
+		oddlines+=linewidth;
+		source+=width;
+	}
+}
+
 
 
 void VWB_DrawPropString	 (char far *string)
@@ -500,7 +537,8 @@ void LoadLatchMem (void)
 	int	i,j,p,m,width,height,start,end;
 	byte	far *src;
 	unsigned	destoff;
-	return;
+
+#ifdef WITH_VGA	
 //
 // tile 8s
 //
@@ -553,6 +591,19 @@ void LoadLatchMem (void)
 	}
 
 	EGAMAPMASK(15);
+	
+#else
+//
+// pics
+//
+	start = LATCHPICS_LUMP_START;
+	end = LATCHPICS_LUMP_END;
+
+	for (i=start;i<=end;i++)
+	{
+		CA_CacheGrChunk (i);
+	}
+#endif
 }
 
 //==========================================================================

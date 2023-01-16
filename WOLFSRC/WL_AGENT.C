@@ -243,6 +243,7 @@ void ControlMovement (objtype *ob)
 
 void StatusDrawPic (unsigned x, unsigned y, unsigned picnum)
 {
+#ifdef WITH_VGA
 	unsigned	temp;
 
 	temp = bufferofs;
@@ -256,6 +257,9 @@ void StatusDrawPic (unsigned x, unsigned y, unsigned picnum)
 	LatchDrawPic (x,y,picnum);
 
 	bufferofs = temp;
+#else
+	VWB_DrawPicDirectToScreen(x << 1, y + 200 - STATUSLINES, picnum);
+#endif
 }
 
 

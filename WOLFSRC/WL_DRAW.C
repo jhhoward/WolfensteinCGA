@@ -1008,6 +1008,21 @@ unsigned vgaCeiling[]=
 #endif
 };
 
+t_floorcolors floorcolors[] =
+{
+	// CGA_MODE5,
+	{	0xcccc,	0x3333,	0xc0c0,	0x0c0c },
+	// CGA_MODE4,
+	{	0xcccc,	0x3333,	0xc0c0,	0x0c0c },
+	// CGA_COMPOSITE_MODE,
+	{	0x5555,	0x5555,	0x8888,	0x8888 },
+	// CGA_INVERSE_MONO,
+	{	0x5555,	0xaaaa,	0xdddd,	0x7777 },
+	// TANDY_MODE
+	{	0x8888,	0x8888,	0x8080,	0x0808 },
+};
+
+
 /*
 =====================
 =
@@ -1382,34 +1397,8 @@ void WallRefresh (void)
 
 void CGAClearScreen()
 {
-	unsigned ceiling1, ceiling2;
-	unsigned floor1, floor2;
-	
-	switch(cgamode)
-	{
-		case CGA_MODE5:
-		case CGA_MODE4:
-			ceiling1 = 0xc0c0;
-			ceiling2 = 0x0c0c;
-			floor1 = 0xcccc;
-			floor2 = 0x3333;
-			break;
-		case CGA_COMPOSITE_MODE:
-			ceiling1 = ceiling2 = 0x8888;
-			floor1 = floor2 = 0x5555;
-			break;
-		case TANDY_MODE:
-			ceiling1 = 0x8080;
-			ceiling2 = 0x0808;
-			floor1 = floor2 = 0x8888;
-			break;
-		case CGA_INVERSE_MONO:
-			ceiling1 = 0xdddd;
-			ceiling2 = 0x7777;
-			floor1 = 0x5555;
-			floor2 = 0xaaaa;
-		break;
-	}
+	unsigned ceiling1 = floorcolors[cgamode].ceiling1, ceiling2 = floorcolors[cgamode].ceiling2;
+	unsigned floor1 = floorcolors[cgamode].floor1, floor2 = floorcolors[cgamode].floor2;
 	
 	//
 	// clear the screen
@@ -1519,7 +1508,7 @@ void	ThreeDRefresh (void)
 	int tracedir;
 	
 // this wouldn't need to be done except for my debugger/video wierdness
-	outportb (SC_INDEX,SC_MAPMASK);
+//	outportb (SC_INDEX,SC_MAPMASK);
 
 //
 // clear out the traced array
@@ -1538,7 +1527,10 @@ asm	rep stosw
 //
 // follow the walls from there to the right, drawwing as we go
 //
-	CGAClearScreen();
+	if(!bakefloor)
+	{
+		CGAClearScreen();
+	}
 
 	//VGAClearScreen ();
 
@@ -1555,7 +1547,8 @@ asm	rep stosw
 // show screen and time last cycle
 //
 	CGABlit();
-	//VL_BlitCGA();
+	
+//	VL_BlitCGA();
 
 /*
 	if (fizzlein)
@@ -1584,6 +1577,8 @@ asm	rep stosw
 	if (bufferofs > PAGE3START)
 		bufferofs = PAGE1START;
 */
+
+/*
 	asm	cli
 	asm	mov	cx,[bufferofs]
 	asm	mov	dx,3d4h		// CRTC address register
@@ -1593,7 +1588,7 @@ asm	rep stosw
 	asm	mov	al,ch
 	asm	out	dx,al   	// set the high byte
 	asm	sti
-
+*/
 	frameon++;
 	PM_NextFrame();
 }

@@ -874,10 +874,10 @@ void DrawPlayScreen (void)
 
 	VW_FadeOut ();
 
-	temp = bufferofs;
-
 	CA_CacheGrChunk (STATUSBARPIC);
 
+#ifdef WITH_VGA
+	temp = bufferofs;
 	for (i=0;i<3;i++)
 	{
 		bufferofs = screenloc[i];
@@ -886,6 +886,10 @@ void DrawPlayScreen (void)
 	}
 
 	bufferofs = temp;
+#else
+	DrawPlayBorder ();
+	VWB_DrawPic (0,200-STATUSLINES,STATUSBARPIC);
+#endif
 
 	UNCACHEGRCHUNK (STATUSBARPIC);
 
@@ -897,7 +901,7 @@ void DrawPlayScreen (void)
 	DrawKeys ();
 	DrawWeapon ();
 	DrawScore ();
-	
+
 #ifndef WITH_VGA
 	VW_UpdateScreen();
 #endif

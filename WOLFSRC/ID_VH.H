@@ -87,6 +87,7 @@ void VWB_DrawTile16M (int x, int y, int tile);
 void VWB_DrawPic (int x, int y, int chunknum);
 void VWB_DrawMPic(int x, int y, int chunknum);
 void VWB_Bar (int x, int y, int width, int height, int color);
+void VWB_DrawPicDirectToScreen (int x, int y, int chunknum);
 
 void VWB_DrawPropString	 (char far *string);
 void VWB_DrawMPropString (char far *string);

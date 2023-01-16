@@ -540,9 +540,9 @@ void VL_FadeOut (int start, int end, int red, int green, int blue, int steps)
 		asm mov ax, 0x1000
 		asm mov bx, 0x0402
 		asm int 0x10
-		asm mov bx, 0x0303
+		asm mov bx, 0x0301
 		asm int 0x10
-		asm mov bx, 0x0701
+		asm mov bx, 0x0703
 		asm int 0x10
 		
 		VL_WaitVBL(5);

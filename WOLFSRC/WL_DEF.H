@@ -966,6 +966,14 @@ void PicturePause (void);
 =============================================================================
 */
 
+typedef struct
+{
+	unsigned floor1, floor2;
+	unsigned ceiling1, ceiling2;
+} t_floorcolors;
+
+extern t_floorcolors floorcolors[];
+
 extern	unsigned screenloc[3];
 extern	unsigned freelatch;
 
@@ -1094,6 +1102,7 @@ extern	byte		mapmasks3[4][8];
 extern	int			maxscale,maxscaleshl2;
 
 extern	boolean	insetupscaling;
+extern	boolean	bakefloor;
 
 void SetupScaling (int maxscaleheight);
 void ScaleShape (int xcenter, int shapenum, unsigned height);

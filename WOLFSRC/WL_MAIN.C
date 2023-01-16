@@ -1191,6 +1191,10 @@ void InitGame (void)
 	{
 		timedemo = true;
 	}		
+	if (MS_CheckParm ("bakefloor"))
+	{
+		bakefloor = true;
+	}		
 
 	if (MS_CheckParm ("composite"))
 	{

@@ -17,6 +17,7 @@ t_compscale _seg *scaledirectory[MAXSCALEHEIGHT+1];
 long			fullscalefarcall[MAXSCALEHEIGHT+1];
 
 boolean		usewiderendering;
+boolean		bakefloor;
 int			maxscale,maxscaleshl2;
 
 boolean	insetupscaling;
@@ -135,7 +136,7 @@ void SetupScaling (int maxscaleheight)
 		MM_SetLock (&(memptr)scaledirectory[i],true);
 		fullscalefarcall[i] = (unsigned)scaledirectory[i];
 		fullscalefarcall[i] <<=16;
-		fullscalefarcall[i] += scaledirectory[i]->codeofs[0];
+		fullscalefarcall[i] += COMPSCALECODESTART; //scaledirectory[i]->codeofs[0];
 		if (i>=stepbytwo)
 		{
 			scaledirectory[i+1] = scaledirectory[i];
@@ -187,7 +188,7 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 	int			i;
 	long		fix,step;
 	unsigned	src,totalscaled,totalsize;
-	int			startpix,endpix,toppix,pix;
+	int			startpix,endpix,toppix,pix,bottompix;
 	
 	if(usewiderendering)
 	{
@@ -197,8 +198,82 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 	step = ((long)height<<16) / 64;
 	code = &work->code[0];
 	toppix = (viewheight-height)/2;
+	bottompix = toppix+height;
 	fix = 0;
 
+	if(bakefloor)
+	{
+		// floor / ceiling
+		//
+		// mov al,X
+		//
+		*code++ = 0xb0;
+		*code++ = (byte) floorcolors[cgamode].ceiling1;		// colour
+		
+		for(i=0;i<toppix;i+=2)
+		{
+			//
+			// mov [es:di+heightofs],al
+			//
+				*code++ = 0x26;
+				*code++ = 0x88;
+				*code++ = 0x85;
+				*((unsigned far *)code)++ = i*SCREENBWIDE;
+		}
+
+		//
+		// mov al,X
+		//
+		*code++ = 0xb0;
+		*code++ = (byte) floorcolors[cgamode].ceiling2;		// colour
+
+		for(i=1;i<toppix;i+=2)
+		{
+			//
+			// mov [es:di+heightofs],al
+			//
+				*code++ = 0x26;
+				*code++ = 0x88;
+				*code++ = 0x85;
+				*((unsigned far *)code)++ = i*SCREENBWIDE;
+		}
+
+		//
+		// mov al,X
+		//
+		*code++ = 0xb0;
+		*code++ = (byte) floorcolors[cgamode].floor1;		// colour
+
+		for(i=(bottompix+1)&0xfffe;i<viewheight;i+=2)
+		{
+			//
+			// mov [es:di+heightofs],al
+			//
+				*code++ = 0x26;
+				*code++ = 0x88;
+				*code++ = 0x85;
+				*((unsigned far *)code)++ = i*SCREENBWIDE;
+		}
+
+		//
+		// mov al,X
+		//
+		*code++ = 0xb0;
+		*code++ = (byte) floorcolors[cgamode].floor2;		// colour
+
+		for(i=(bottompix|1);i<viewheight;i+=2)
+		{
+			//
+			// mov [es:di+heightofs],al
+			//
+				*code++ = 0x26;
+				*code++ = 0x88;
+				*code++ = 0x85;
+				*((unsigned far *)code)++ = i*SCREENBWIDE;
+		}
+	}
+
+	
 	for (src=0;src<=64;src++)
 	{
 		startpix = fix>>16;

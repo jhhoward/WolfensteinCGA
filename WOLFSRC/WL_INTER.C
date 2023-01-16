@@ -1003,7 +1003,11 @@ void PreloadGraphics(void)
 
 	VWB_Bar (0,0,320,200-STATUSLINES,VIEWPORTBORDER);
 
+#ifdef WITH_VGA
 	LatchDrawPic (20-14,80-3*8,GETPSYCHEDPIC);
+#else
+	VWB_DrawPic(8 * (20-14),80-3*8,GETPSYCHEDPIC);
+#endif
 
 	WindowX = 160-14*8;
 	WindowY = 80-3*8;
