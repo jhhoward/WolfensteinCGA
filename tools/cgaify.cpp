@@ -261,7 +261,7 @@ bool ShouldDither(int chunkNumber)
 {
 	if(isDemo)
 	{
-		for(int n = 0; n < sizeof(picsToDitherDemo); n++)
+		for(int n = 0; n < sizeof(picsToDitherDemo) / sizeof(int); n++)
 		{
 			if(picsToDitherDemo[n] == chunkNumber)
 			{
@@ -271,7 +271,7 @@ bool ShouldDither(int chunkNumber)
 	}
 	else
 	{
-		for(int n = 0; n < sizeof(picsToDither); n++)
+		for(int n = 0; n < sizeof(picsToDither) / sizeof(int); n++)
 		{
 			if(picsToDither[n] == chunkNumber - 3)
 			{
