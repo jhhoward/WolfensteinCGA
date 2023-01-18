@@ -874,7 +874,7 @@ void VL_Vlin (int x, int y, int height, int color)
 	andmask = writemask ^ 0xff;
 	writemask &= (byte) color;
 	
-	dest = MK_FP(cgabackbufferseg,bufferofs+ylookup[y]+(x>>2));
+	dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2));
 
 	while (height--)
 	{
