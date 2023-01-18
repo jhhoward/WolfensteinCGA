@@ -17,6 +17,7 @@ t_compscale _seg *scaledirectory[MAXSCALEHEIGHT+1];
 long			fullscalefarcall[MAXSCALEHEIGHT+1];
 
 boolean		usewiderendering;
+boolean		halfverticalres;
 boolean		bakefloor;
 int			maxscale,maxscaleshl2;
 
@@ -342,6 +343,9 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 				*code++ = 0x85;
 				*((unsigned far *)code)++ = pix*SCREENBWIDE;
 			}
+			
+			if(halfverticalres)
+				continue;
 
 			if((startpix | 1) < endpix)
 			{

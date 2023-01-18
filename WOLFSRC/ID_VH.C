@@ -469,16 +469,12 @@ void VWB_Plot (int x, int y, int color)
 
 void VWB_Hlin (int x1, int x2, int y, int color)
 {
-	return;
-
 	if (VW_MarkUpdateBlock (x1,y,x2,y))
 		VW_Hlin(x1,x2,y,color);
 }
 
 void VWB_Vlin (int y1, int y2, int x, int color)
 {
-	return;
-
 	if (VW_MarkUpdateBlock (x,y1,x,y2))
 		VW_Vlin(y1,y2,x,color);
 }
@@ -619,6 +615,7 @@ void LoadLatchMem (void)
 */
 
 extern	ControlInfo	c;
+extern unsigned cgascreenofs;
 
 boolean FizzleFade (unsigned source, unsigned dest,
 	unsigned width,unsigned height, unsigned frames, boolean abortable)
@@ -628,6 +625,8 @@ boolean FizzleFade (unsigned source, unsigned dest,
 	byte 		mask,maskb[8] = {1,2,4,8};
 	unsigned	x,y,p,frame;
 	long		rndval;
+	byte far	*ptr;
+	byte		fizzlecolor;
 
 	pagedelta = dest-source;
 	rndval = 1;
@@ -636,6 +635,7 @@ boolean FizzleFade (unsigned source, unsigned dest,
 
 	IN_StartAck ();
 
+#ifdef WITH_VGA
 	TimeCount=frame=0;
 	do	// while (1)
 	{
@@ -694,6 +694,86 @@ noxor:
 		while (TimeCount<frame)		// don't go too fast
 		;
 	} while (1);
+#else
+	TimeCount=frame=0;
+	
+	switch(cgamode)
+	{
+		case CGA_MODE5:
+		case CGA_MODE4:
+		fizzlecolor = 0xa;
+		break;
+		case CGA_COMPOSITE_MODE:
+		fizzlecolor = 0x4;
+		break;
+		case TANDY_MODE:
+		fizzlecolor = 0x4;
+		break;
+		case CGA_INVERSE_MONO:
+		fizzlecolor = 0xf;
+		break;
+	}
+	
+	do	// while (1)
+	{
+		if (abortable && IN_CheckAck () )
+			return true;
 
+		for (p=0;p<pixperframe;p++)
+		{
+			//
+			// seperate random value into x/y pair
+			//
+			asm	mov	ax,[WORD PTR rndval]
+			asm	mov	dx,[WORD PTR rndval+2]
+			asm	mov	bx,ax
+			asm	dec	bl
+			asm	mov	[BYTE PTR y],bl			// low 8 bits - 1 = y xoordinate
+			asm	mov	bx,ax
+			asm	mov	cx,dx
+			asm	mov	[BYTE PTR x],ah			// next 9 bits = x xoordinate
+			asm	mov	[BYTE PTR x+1],dl
+			//
+			// advance to next random element
+			//
+			asm	shr	dx,1
+			asm	rcr	ax,1
+			asm	jnc	noxor
+			asm	xor	dx,0x0001
+			asm	xor	ax,0x2000
+noxor:
+			asm	mov	[WORD PTR rndval],ax
+			asm	mov	[WORD PTR rndval+2],dx
+
+			if (x>=width || y>=height)
+				continue;
+			drawofs = cgascreenofs+ylookup[y >> 1] + (x>>2);
+
+			if(y & 1)
+			{
+				ptr = MK_FP(0xba00, drawofs);
+			}
+			else
+			{
+				ptr = MK_FP(0xb800, drawofs);
+			}
+			
+			if(x & 1)
+			{
+				*ptr = (*ptr & 0x0f) | (fizzlecolor << 4);
+			}
+			else
+			{
+				*ptr = (*ptr & 0xf0) | fizzlecolor;
+			}
+		
+			if (rndval == 1)		// entire sequence has been completed
+				return false;
+		}
+		frame++;
+		while (TimeCount<frame)		// don't go too fast
+		;
+	} while (1);
+#endif
 
 }

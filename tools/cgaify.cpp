@@ -7,6 +7,8 @@ using namespace std;
 
 #define USE_ALL_DITHERS 1
 
+bool isDemo = false;
+
 enum CgaMode
 {
 	CGA_RGB,
@@ -30,6 +32,22 @@ const char* gfxFilename[] =
 	"COMGRAPH.WL6",
 	"TGAGRAPH.WL6",
 	"LCDGRAPH.WL6"
+};
+
+const char* headFilenameDemo[] =
+{
+	"CGAHEAD.WL1",
+	"COMHEAD.WL1",
+	"TGAHEAD.WL1",
+	"LCDHEAD.WL1"
+};
+
+const char* gfxFilenameDemo[] =
+{
+	"CGAGRAPH.WL1",
+	"COMGRAPH.WL1",
+	"TGAGRAPH.WL1",
+	"LCDGRAPH.WL1"
 };
 
 #define NUM_PATTERNS (sizeof(patterns) / 4)
@@ -232,15 +250,31 @@ uint8_t lcdPatternsShifted[NUM_LCD_PATTERNS] =
 };
 
 int picsToDither[] =
-{ 0, 1, 2, 7, 23, 24, 25, 26, 40, 81, 82, 84, 87, 130, 131 };
+{ 0, 1, 2, 7, 23, 24, 25, 26, 40, 81, 82, 84, 87, 130, 131, 27, 28, 29, 30, 31, 32 };
+
+int picsToDitherDemo[] =
+{ 3, 4, 11, 13, 21, 22, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 55, 96, 97, 99, 102, 145, 146};
 
 bool ShouldDither(int chunkNumber)
 {
-	for(int n = 0; n < sizeof(picsToDither); n++)
+	if(isDemo)
 	{
-		if(picsToDither[n] == chunkNumber - 3)
+		for(int n = 0; n < sizeof(picsToDitherDemo); n++)
 		{
-			return true;
+			if(picsToDitherDemo[n] == chunkNumber)
+			{
+				return true;
+			}
+		}
+	}
+	else
+	{
+		for(int n = 0; n < sizeof(picsToDither); n++)
+		{
+			if(picsToDither[n] == chunkNumber - 3)
+			{
+				return true;
+			}
 		}
 	}
 	return false;
@@ -294,6 +328,17 @@ int FindClosestPaletteEntry(uint8_t* rgb, uint8_t* pal, int palSize, uint8_t* we
 		if(distance < 0)
 		{
 			continue;
+		}
+		
+		//if(!pal[n * 3] && !pal[n * 3 + 1] && !pal[n * 3 + 2])
+		{
+			// Palette entry is black
+			//distance *= 2;
+			//if(rgb[0] || rgb[1] || rgb[2])
+			//{
+			//	// Only match black with black
+			//	continue;
+			//}
 		}
 		
 		if(closest == -1 || distance < closestDistance)
@@ -549,7 +594,9 @@ void GenerateDataFile(const char* filename, uint8_t* data, int dataLength, uint8
 }
 
 #define STARTPICS    3
-#define NUMPICS      132
+#define NUMPICSDEMO      144
+#define NUMPICSFULL      132
+#define NUMPICS (isDemo ? NUMPICSDEMO : NUMPICSFULL)
 
 struct GraphChunk
 {
@@ -562,9 +609,9 @@ struct GraphChunk
 
 void ProcessGraphics(CgaMode gfxMode)
 {
-	printf("Generating %s..\n", gfxFilename[gfxMode]);
+	printf("Generating %s..\n", isDemo ? gfxFilenameDemo[gfxMode] : gfxFilename[gfxMode]);
 	
-	FILE* dictionaryFile = fopen("VGADICT.WL6", "rb");
+	FILE* dictionaryFile = fopen(isDemo ? "VGADICT.WL1" : "VGADICT.WL6", "rb");
 	if(!dictionaryFile)
 	{
 		printf("Could not open dictionary\n");
@@ -573,7 +620,7 @@ void ProcessGraphics(CgaMode gfxMode)
 	fread(grhuffman, sizeof(grhuffman), 1, dictionaryFile);
 	fclose(dictionaryFile);
 
-	FILE* headFile = fopen("VGAHEAD.WL6", "rb");
+	FILE* headFile = fopen(isDemo ? "VGAHEAD.WL1" : "VGAHEAD.WL6", "rb");
 	
 	if(!headFile)
 	{
@@ -623,7 +670,7 @@ void ProcessGraphics(CgaMode gfxMode)
 	
 	fclose(headFile);
 	
-	FILE* graphicsFile = fopen("VGAGRAPH.WL6", "rb");
+	FILE* graphicsFile = fopen(isDemo ? "VGAGRAPH.WL1" : "VGAGRAPH.WL6", "rb");
 	fseek(graphicsFile, 0, SEEK_END);
 	long graphicsLength = ftell(graphicsFile);
     fseek(graphicsFile, 0, SEEK_SET);
@@ -845,7 +892,7 @@ void ProcessGraphics(CgaMode gfxMode)
 		}
 	}
 
-	FILE* graphicsFileOut = fopen(gfxFilename[gfxMode], "wb");
+	FILE* graphicsFileOut = fopen(isDemo ? gfxFilenameDemo[gfxMode] : gfxFilename[gfxMode], "wb");
 	uint32_t totalGraphicsFileLength = 0;
 	for (int n = 0; n < numChunks; n++)
 	{
@@ -855,11 +902,11 @@ void ProcessGraphics(CgaMode gfxMode)
 	}
 	fclose(graphicsFileOut);
 
-	FILE* dictFileOut = fopen("CGADICT.WL6", "wb");
+	FILE* dictFileOut = fopen(isDemo ? "CGADICT.WL1" : "CGADICT.WL6", "wb");
 	fwrite(grhuffman, sizeof(grhuffman), 1, dictFileOut);
 	fclose(dictFileOut);
 
-	FILE* graphicsHeadOut = fopen(headFilename[gfxMode], "wb");
+	FILE* graphicsHeadOut = fopen(isDemo ? headFilenameDemo[gfxMode] : headFilename[gfxMode], "wb");
 	for (int n = 0; n < numChunks; n++)
 	{
 		uint32_t offset = chunks[n].headerOffset;
@@ -1034,6 +1081,14 @@ int main(int argc, char** argv)
 	GenerateCGAPaletteRGB();
 
 	GenerateLUT();
+	
+	for(int n = 1; n < argc; n++)
+	{
+		if(!stricmp(argv[n], "demo"))
+		{
+			isDemo = true;
+		}
+	}
 
 	for(int n = 0; n < NUM_GFX_MODES; n++)
 	{
@@ -1047,11 +1102,13 @@ int main(int argc, char** argv)
 		//FILE* fs = fopen(argv[1], "rb");
 		//FILE* fo = fopen("CSWAP.WL6", "wb");
 		//FILE* fx = fopen("XSWAP.WL6", "wb");
-		FILE* fs = fopen("VSWAP.WL6", "rb");
+		FILE* fs;
+
+		fs = fopen(isDemo ? "VSWAP.WL1" : "VSWAP.WL6", "rb");
 		
 		if(!fs)
 		{
-			printf("Could not open VSWAP.WL6\n");
+			printf(isDemo ? "Could not open VSWAP.WL1\n" : "Could not open VSWAP.WL6\n");
 			exit(1);
 		}
 		
@@ -1063,10 +1120,10 @@ int main(int argc, char** argv)
 			fseek(fs, 0, SEEK_SET);
 			fread(data, 1, dataSize, fs);
 			
-			GenerateDataFile("XSWAP.WL6", data, dataSize, convertLUTComposite);
-			GenerateDataFile("CSWAP.WL6", data, dataSize, convertLUT);
-			GenerateDataFile("TSWAP.WL6", data, dataSize, convertLUTTandy);
-			GenerateDataFile("LSWAP.WL6", data, dataSize, convertLUTLCD);
+			GenerateDataFile(isDemo ? "XSWAP.WL1" : "XSWAP.WL6", data, dataSize, convertLUTComposite);
+			GenerateDataFile(isDemo ? "CSWAP.WL1" : "CSWAP.WL6", data, dataSize, convertLUT);
+			GenerateDataFile(isDemo ? "TSWAP.WL1" : "TSWAP.WL6", data, dataSize, convertLUTTandy);
+			GenerateDataFile(isDemo ? "LSWAP.WL1" : "LSWAP.WL6", data, dataSize, convertLUTLCD);
 			
 			fclose(fs);
 			

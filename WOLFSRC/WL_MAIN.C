@@ -1191,6 +1191,10 @@ void InitGame (void)
 	{
 		timedemo = true;
 	}		
+	if (MS_CheckParm ("lowres"))
+	{
+		halfverticalres = true;
+	}		
 	if (MS_CheckParm ("bakefloor"))
 	{
 		bakefloor = true;

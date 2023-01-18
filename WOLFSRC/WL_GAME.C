@@ -851,9 +851,9 @@ void DrawPlayBorder (void)
 	VWB_Bar (xl,yl,viewwidth,viewheight,0);
 
 	VWB_Hlin (xl-1,xl+viewwidth,yl-1,0);
-	VWB_Hlin (xl-1,xl+viewwidth,yl+viewheight,125);
+	VWB_Hlin (xl-1,xl+viewwidth,yl+viewheight,VIEWPORTHIGHLIGHT);
 	VWB_Vlin (yl-1,yl+viewheight,xl-1,0);
-	VWB_Vlin (yl-1,yl+viewheight,xl+viewwidth,125);
+	VWB_Vlin (yl-1,yl+viewheight,xl+viewwidth,VIEWPORTHIGHLIGHT);
 	VWB_Plot (xl-1,yl+viewheight,124);
 }
 

@@ -22,6 +22,7 @@
 #define VIEWPORTBORDER 127
 #define PG13BG		0x82
 #define BACKCOLOR		0x11
+#define VIEWPORTHIGHLIGHT 125
 #else
 #define BORDCOLOR	menucolors[cgamode].bordcolor
 #define BORD2COLOR	menucolors[cgamode].bordcolor2
@@ -29,6 +30,7 @@
 #define BKGDCOLOR	menucolors[cgamode].bkgdcolor
 #define STRIPE		menucolors[cgamode].stripe
 #define VIEWPORTBORDER	menucolors[cgamode].viewportborder
+#define VIEWPORTHIGHLIGHT	menucolors[cgamode].viewporthighlight
 #define PG13BG	menucolors[cgamode].pg13bg
 #define BACKCOLOR		menucolors[cgamode].backcolor
 
@@ -71,6 +73,7 @@ typedef struct {
 		unsigned textcolor;
 		unsigned highlight;
 		unsigned viewportborder;
+		unsigned viewporthighlight;
 		unsigned pg13bg;
 		unsigned backcolor;
 		unsigned signonfill;

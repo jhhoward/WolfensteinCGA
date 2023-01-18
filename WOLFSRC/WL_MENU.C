@@ -31,7 +31,7 @@ MenuColors far menucolors[] =
 	{
 		0x2aa2,		// bordcolor
 		0x2aa2,		// bordcolor2
-		0x2288,		// bkgdcolor
+		0,//0x2288,		// bkgdcolor
 		0x0000,		// stripe
 		0x5555,		// readcolor
 		0xaaaa,		// readhcolor
@@ -39,6 +39,7 @@ MenuColors far menucolors[] =
 		0xffff,		// textcolor		
 		0xffff,		// highlight
 		0x5555,		// viewportborder
+		0xffff,		// viewporthighlight
 		0x5555,		// pg13bg
 		0x0000,		// backcolor
 		0xffff,		// signonfill
@@ -47,7 +48,7 @@ MenuColors far menucolors[] =
 	{
 		0x2aa2,		// bordcolor
 		0x2aa2,		// bordcolor2
-		0x2288,		// bkgdcolor
+		0, //0x2288,		// bkgdcolor
 		0x0000,		// stripe
 		0x5555,		// readcolor
 		0xaaaa,		// readhcolor
@@ -55,15 +56,16 @@ MenuColors far menucolors[] =
 		0xffff,		// textcolor		
 		0xffff,		// highlight
 		0x5555,		// viewportborder
+		0xffff,		// viewporthighlight
 		0x5555,		// pg13bg
 		0x0000,		// backcolor
 		0xffff,		// signonfill
 	},
 	// CGA_COMPOSITE_MODE,
 	{
-		0xcccc,		// bordcolor
-		0xcccc,		// bordcolor2
-		0x4444,		// bkgdcolor
+		0x4444,		// bordcolor
+		0x4444,		// bordcolor2
+		0x0000,		// bkgdcolor
 		0x0000,		// stripe
 		0x5555,		// readcolor
 		0xaaaa,		// readhcolor
@@ -71,6 +73,7 @@ MenuColors far menucolors[] =
 		0xffff,		// textcolor		
 		0xffff,		// highlight
 		0x1111,		// viewportborder
+		0xffff,		// viewporthighlight
 		0x3333,		// pg13bg
 		0x0000,		// backcolor
 		0xdddd,		// signonfill
@@ -87,6 +90,7 @@ MenuColors far menucolors[] =
 		0xffff,		// textcolor		
 		0xffff,		// highlight
 		0x5555,		// viewportborder
+		0x0000,		// viewporthighlight
 		0x5555,		// pg13bg
 		0x0000,		// backcolor
 		0xffff,		// signonfill
@@ -103,6 +107,7 @@ MenuColors far menucolors[] =
 		0x7777,		// textcolor		
 		0xffff,		// highlight
 		0x3333,		// viewportborder
+		0xbbbb,		// viewporthighlight
 		0x3333,		// pg13bg
 		0x0000,		// backcolor
 		0xeeee,		// signonfill

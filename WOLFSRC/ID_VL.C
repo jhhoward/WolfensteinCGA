@@ -562,6 +562,17 @@ void VL_FadeOut (int start, int end, int red, int green, int blue, int steps)
 		break;
 		
 		default:
+		_fmemset(MK_FP(0xb800, 0), 0, 0x2000);
+		VL_WaitVBL(5);
+		_fmemset(MK_FP(0xba00, 0), 0, 0x2000);
+		VL_WaitVBL(5);
+		break;
+		
+		case CGA_INVERSE_MONO:
+		_fmemset(MK_FP(0xb800, 0), 0xff, 0x2000);
+		VL_WaitVBL(5);
+		_fmemset(MK_FP(0xba00, 0), 0xff, 0x2000);
+		VL_WaitVBL(5);
 		break;
 	}
 #endif
@@ -763,6 +774,7 @@ void VL_Plot (int x, int y, int color)
 
 void VL_Hlin (unsigned x, unsigned y, unsigned width, unsigned color)
 {
+#ifdef WITH_VGA
 	unsigned		xbyte;
 	byte			far *dest;
 	byte			leftmask,rightmask;
@@ -795,6 +807,37 @@ void VL_Hlin (unsigned x, unsigned y, unsigned width, unsigned color)
 	*dest = color;
 
 	VGAMAPMASK(15);
+#else
+	byte	far *dest;
+	byte mask;
+	byte colorwrite = (byte) color;
+	
+	dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2));
+	
+	mask = 0x3 << ((3 - (x & 3)) << 1);
+	while(mask && width)
+	{
+		*dest = (*dest & (~mask)) | (mask & colorwrite);
+		mask >>= 2;
+		width--;
+	}
+	
+	dest++;
+	while(width > 4)
+	{
+		*dest++ = colorwrite;
+		width -= 4;
+	}
+	
+	mask = 0xc0;
+	while(width)
+	{
+		*dest = (*dest & (~mask)) | (mask & colorwrite);
+		mask >>= 2;
+		width--;
+	}
+		
+#endif
 }
 
 
@@ -808,6 +851,7 @@ void VL_Hlin (unsigned x, unsigned y, unsigned width, unsigned color)
 
 void VL_Vlin (int x, int y, int height, int color)
 {
+#ifdef WITH_VGA
 	byte	far *dest,mask;
 
 	mask = pixmasks[x&3];
@@ -822,6 +866,23 @@ void VL_Vlin (int x, int y, int height, int color)
 	}
 
 	VGAMAPMASK(15);
+#else
+	byte	far *dest;
+	byte writemask, andmask;
+	
+	writemask = 0xc0 >> ((x & 3) << 1);
+	andmask = writemask ^ 0xff;
+	writemask &= (byte) color;
+	
+	dest = MK_FP(cgabackbufferseg,bufferofs+ylookup[y]+(x>>2));
+
+	while (height--)
+	{
+		*dest = (*dest & andmask) | writemask;
+		dest += linewidth;
+	}
+	
+#endif
 }
 
 
@@ -833,15 +894,18 @@ void VL_Vlin (int x, int y, int height, int color)
 =================
 */
 
+byte cgarightmask[] = { 0xc0, 0xf0, 0xfc, 0 };
+byte cgaleftmask[] = { 0x3f, 0x0f, 0x3, 0 };
+
 void VL_Bar (int x, int y, int width, int height, int color)
 {
+#ifdef WITH_VGA
 	byte	far *dest;
 	byte	leftmask,rightmask;
 	int		midbytes,linedelta;
 	int		color2;
 	int		halfheight;
 	
-#ifdef WITH_VGA
 	leftmask = leftmasks[x&3];
 	rightmask = rightmasks[(x+width-1)&3];
 	midbytes = ((x+width+3)>>2) - (x>>2) - 2;
@@ -879,30 +943,46 @@ void VL_Bar (int x, int y, int width, int height, int color)
 
 	VGAMAPMASK(15);
 #else
-	dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2));
+	byte	far *dest;
+	int pixels;
+	byte colorodd, coloreven;
+	byte colorwrite;
+	byte mask;
 
-	width >>= 2;
-	color2 = color >> 8;
-	color &= 0xff;
-	halfheight = height >> 1;
+	colorodd = (byte)(color >> 8);
+	coloreven = (byte)(color);
 	
-	while(halfheight--)
+	while(height--)
 	{
-		_fmemset (dest,color,width);
-		dest+=linewidth;
-		_fmemset (dest,color2,width);
-		dest+=linewidth;
+		dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2));
+		colorwrite = (y & 1) ? colorodd : coloreven;
+		pixels = width;
+		
+		mask = 0x3 << ((3 - (x & 3)) << 1);
+		while(mask && pixels)
+		{
+			*dest = (*dest & (~mask)) | (mask & colorwrite);
+			mask >>= 2;
+			pixels--;
+		}
+		
+		dest++;
+		while(pixels > 4)
+		{
+			*dest++ = colorwrite;
+			pixels -= 4;
+		}
+		
+		mask = 0xc0;
+		while(pixels)
+		{
+			*dest = (*dest & (~mask)) | (mask & colorwrite);
+			mask >>= 2;
+			pixels--;
+		}
+		
+		y++;
 	}
-	
-	height -= halfheight;
-	height -= halfheight;
-	
-	if (height)
-	{
-		_fmemset (dest,color,width);
-		dest+=linewidth;
-	}
-	//VL_BlitCGA();
 #endif
 }
 
@@ -1394,6 +1474,7 @@ void VL_TintColor(byte color)
 		
 		case CGA_MODE4:
 		case TANDY_MODE:
+		color |= 0x10;
 		asm mov ax, 0x0b00
 		asm mov bh, 0
 		asm mov bl, [color]
