@@ -255,6 +255,8 @@ int picsToDither[] =
 int picsToDitherDemo[] =
 { 3, 4, 11, 13, 21, 22, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 55, 96, 97, 99, 102, 145, 146};
 
+bool dumpPalettes = false;
+
 bool ShouldDither(int chunkNumber)
 {
 	if(isDemo)
@@ -390,7 +392,11 @@ void GeneratePatternsRGB()
 		palettePixels.push_back(patternsRGB[n * 3 + 2]);
 		palettePixels.push_back(255);
 	}
-	lodepng::encode("palette.png", palettePixels, NUM_PATTERNS, 1);
+	
+	if(dumpPalettes)
+	{
+		lodepng::encode("palette.png", palettePixels, NUM_PATTERNS, 1);
+	}
 }
 
 void GenerateCompositePaletteRGB()
@@ -438,7 +444,11 @@ void GenerateCompositePaletteRGB()
 		palettePixels.push_back(compositePatternRGB[n * 3 + 2]);
 		palettePixels.push_back(255);
 	}
-	lodepng::encode("compopalette.png", palettePixels, 16, 16);
+	
+	if(dumpPalettes)
+	{
+		lodepng::encode("compopalette.png", palettePixels, 16, 16);
+	}
 }
 
 void GenerateCGAPaletteRGB()
@@ -479,7 +489,11 @@ void GenerateCGAPaletteRGB()
 		palettePixels.push_back(cgaPatternRGB[n * 3 + 2]);
 		palettePixels.push_back(255);
 	}
-	lodepng::encode("cgapalette.png", palettePixels, 16, 16);
+	
+	if(dumpPalettes)
+	{
+		lodepng::encode("cgapalette.png", palettePixels, 16, 16);
+	}
 }
 
 void GenerateLUT()
@@ -940,8 +954,8 @@ void GenerateSignon()
 	
 	if(lodepng::decode(pixels, width, height, "signon.png"))
 	{
-		printf("Could not load signon.png\n");
-		exit(1);
+		printf("Could not load signon.png - skipping\n");
+		return;
 	}
 	
 	vector<uint8_t> output;
