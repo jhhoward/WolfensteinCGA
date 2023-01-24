@@ -461,6 +461,7 @@ nomore:
 #else
 void	near ScalePost (void)		// CGA version
 {
+	BEGIN_PROFILE(PROF_SCALEPOST)
 	asm mov cx,[dithershift]
 	
 	asm mov ax,[cgabackbufferseg]
@@ -490,6 +491,7 @@ heightok:
 
 	asm	mov	ax,ss
 	asm	mov	ds,ax
+	END_PROFILE(PROF_SCALEPOST)
 }
 #endif
 
@@ -1147,6 +1149,8 @@ void DrawScaleds (void)
 	statobj_t	*statptr;
 	objtype		*obj;
 
+	BEGIN_PROFILE(PROF_DRAWSCALED)
+
 	visptr = &vislist[0];
 
 //
@@ -1226,7 +1230,10 @@ void DrawScaleds (void)
 	numvisable = visptr-&vislist[0];
 
 	if (!numvisable)
+	{
+		END_PROFILE(PROF_DRAWSCALED)
 		return;									// no visable objects
+	}
 
 	for (i = 0; i<numvisable; i++)
 	{
@@ -1247,6 +1254,8 @@ void DrawScaleds (void)
 
 		farthest->viewheight = 32000;
 	}
+
+	END_PROFILE(PROF_DRAWSCALED)
 
 }
 
@@ -1269,6 +1278,8 @@ void DrawPlayerWeapon (void)
 {
 	int	shapenum;
 
+	BEGIN_PROFILE(PROF_DRAWWEAPON)
+
 #ifndef SPEAR
 	if (gamestate.victoryflag)
 	{
@@ -1283,8 +1294,10 @@ void DrawPlayerWeapon (void)
 		SimpleScaleShape(viewwidth/2,shapenum,viewheight+1);
 	}
 
-	if (demorecord || demoplayback)
+	if (!timedemo && (demorecord || demoplayback))
 		SimpleScaleShape(viewwidth/2,SPR_DEMO,viewheight+1);
+	
+	END_PROFILE(PROF_DRAWWEAPON)
 }
 
 
@@ -1363,6 +1376,7 @@ void	FixOfs (void)
 
 void WallRefresh (void)
 {
+	BEGIN_PROFILE(PROF_WALLREFRESH)
 //
 // set up variables for this view
 //
@@ -1391,6 +1405,7 @@ void WallRefresh (void)
 #endif
 	AsmRefresh ();
 	ScalePost ();			// no more optimization on last post
+	END_PROFILE(PROF_WALLREFRESH)
 }
 
 //==========================================================================
@@ -1501,6 +1516,7 @@ void CGAClearScreen()
 
 void CGABlit()
 {
+	BEGIN_PROFILE(PROF_CGABLIT)
 	if(!halfverticalres)
 	{
 		asm mov dx, [viewheight]
@@ -1596,6 +1612,7 @@ blitoddlines:
 
 		asm pop ds
 	}
+	END_PROFILE(PROF_CGABLIT)
 }
 
 /*
@@ -1609,6 +1626,8 @@ blitoddlines:
 void	ThreeDRefresh (void)
 {
 	int tracedir;
+	
+	BEGIN_PROFILE(PROF_THREEDREFRESH);
 	
 // this wouldn't need to be done except for my debugger/video wierdness
 //	outportb (SC_INDEX,SC_MAPMASK);
@@ -1694,6 +1713,8 @@ asm	rep stosw
 */
 	frameon++;
 	PM_NextFrame();
+	
+	END_PROFILE(PROF_THREEDREFRESH);
 }
 
 

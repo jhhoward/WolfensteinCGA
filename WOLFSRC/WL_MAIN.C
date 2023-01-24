@@ -70,6 +70,16 @@ int             mouseadjustment;
 
 char	configname[13]="CONFIG.";
 
+profilermarker_t profilermarkers[NUM_PROFILER_MARKERS] =
+{
+	{ "THREEDREFRESH" },
+	{ "WALLREFRESH" },
+	{ "SCALEPOST" },
+	{ "DRAWSCALED" },
+	{ "DRAWWEAPON" },
+	{ "CGABLIT" },
+};
+
 
 /*
 =============================================================================

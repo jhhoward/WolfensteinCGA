@@ -1511,6 +1511,25 @@ void DumpTimeDemoStats(void)
 		fractional = fps - (whole * 10);
 		
 		printf("Demo frames: %lu\nTick duration: %lu\nFPS: %d.%d\n", timedemoframes, timedemoduration, whole, fractional);
+		
+#ifdef WITH_PROFILER
+		{
+			int n;
+			float averageticks, averagems, percent;
+			float averageframeticks = (float)timedemoduration / timedemoframes;
+			float averageframems = (averageframeticks * 1000) / 70;
+			printf("Average frame duration: %f ticks, %f ms\n", averageframeticks, averageframems);
+			
+			for(n = 0; n < NUM_PROFILER_MARKERS; n++)
+			{
+				averageticks = (float) profilermarkers[n].total / timedemoframes;
+				averagems = (averageticks * 1000) / 70;
+				percent = (100.0f * averageticks) / averageframeticks;
+				printf("%s:\tavg tic: %4.2f avg ms: %4.2f ms ", profilermarkers[n].name, averageticks, averagems);
+				printf("percent: %2.1f\n", percent);
+			}
+		}
+#endif
 	}
 	
 	exit(1);

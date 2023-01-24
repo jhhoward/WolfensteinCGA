@@ -1287,3 +1287,36 @@ extern	char	helpfilename[],endfilename[];
 
 extern	void	HelpScreens(void);
 extern	void	EndText(void);
+
+/*
+	Profiler system
+*/
+//#define WITH_PROFILER
+
+enum
+{
+	PROF_THREEDREFRESH,
+	PROF_WALLREFRESH,
+	PROF_SCALEPOST,
+	PROF_DRAWSCALED,
+	PROF_DRAWWEAPON,
+	PROF_CGABLIT,
+	NUM_PROFILER_MARKERS
+};
+
+#ifdef WITH_PROFILER
+typedef struct
+{
+	const char* name;
+	unsigned long start;
+	unsigned long total;
+} profilermarker_t;
+
+extern profilermarker_t profilermarkers[NUM_PROFILER_MARKERS]; 
+
+#define BEGIN_PROFILE(x) profilermarkers[x].start = TimeCount;
+#define END_PROFILE(x) profilermarkers[x].total += (TimeCount - profilermarkers[x].start);
+#else
+#define BEGIN_PROFILE(x)
+#define END_PROFILE(x)
+#endif
