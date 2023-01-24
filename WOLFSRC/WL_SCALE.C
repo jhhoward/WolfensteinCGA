@@ -17,8 +17,6 @@ t_compscale _seg *scaledirectory[MAXSCALEHEIGHT+1];
 long			fullscalefarcall[MAXSCALEHEIGHT+1];
 
 boolean		usewiderendering;
-boolean		halfverticalres;
-boolean		bakefloor;
 int			maxscale,maxscaleshl2;
 
 boolean	insetupscaling;
@@ -88,6 +86,9 @@ void SetupScaling (int maxscaleheight)
 		case TANDY_MODE:
 		case CGA_COMPOSITE_MODE:
 		dithershift = 4;
+		break;
+		case HERCULES_MODE:
+		dithershift = 3;
 		break;
 	}
 	if (MS_CheckParm("nodither"))
@@ -191,89 +192,8 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 	unsigned	src,totalscaled,totalsize;
 	int			startpix,endpix,toppix,pix,bottompix;
 	
-	if(usewiderendering)
-	{
-		height <<= 1;
-	}
-	
 	step = ((long)height<<16) / 64;
-	code = &work->code[0];
-	toppix = (viewheight-height)/2;
-	bottompix = toppix+height;
 	fix = 0;
-
-	if(bakefloor)
-	{
-		// floor / ceiling
-		//
-		// mov al,X
-		//
-		*code++ = 0xb0;
-		*code++ = (byte) floorcolors[cgamode].ceiling1;		// colour
-		
-		for(i=0;i<toppix;i+=2)
-		{
-			//
-			// mov [es:di+heightofs],al
-			//
-				*code++ = 0x26;
-				*code++ = 0x88;
-				*code++ = 0x85;
-				*((unsigned far *)code)++ = i*SCREENBWIDE;
-		}
-
-		//
-		// mov al,X
-		//
-		*code++ = 0xb0;
-		*code++ = (byte) floorcolors[cgamode].ceiling2;		// colour
-
-		for(i=1;i<toppix;i+=2)
-		{
-			//
-			// mov [es:di+heightofs],al
-			//
-				*code++ = 0x26;
-				*code++ = 0x88;
-				*code++ = 0x85;
-				*((unsigned far *)code)++ = i*SCREENBWIDE;
-		}
-
-		//
-		// mov al,X
-		//
-		*code++ = 0xb0;
-		*code++ = (byte) floorcolors[cgamode].floor1;		// colour
-
-		for(i=(bottompix+1)&0xfffe;i<viewheight;i+=2)
-		{
-			//
-			// mov [es:di+heightofs],al
-			//
-				*code++ = 0x26;
-				*code++ = 0x88;
-				*code++ = 0x85;
-				*((unsigned far *)code)++ = i*SCREENBWIDE;
-		}
-
-		//
-		// mov al,X
-		//
-		*code++ = 0xb0;
-		*code++ = (byte) floorcolors[cgamode].floor2;		// colour
-
-		for(i=(bottompix|1);i<viewheight;i+=2)
-		{
-			//
-			// mov [es:di+heightofs],al
-			//
-				*code++ = 0x26;
-				*code++ = 0x88;
-				*code++ = 0x85;
-				*((unsigned far *)code)++ = i*SCREENBWIDE;
-		}
-	}
-
 	
 	for (src=0;src<=64;src++)
 	{
@@ -282,9 +202,34 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 		endpix = fix>>16;
 
 		if (endpix>startpix)
+		{
 			work->width[src] = endpix-startpix;
+		}
 		else
 			work->width[src] = 0;
+	}
+	
+	// Aspect ratio correction
+	if(usewiderendering)
+	{
+		height <<= 1;
+	}
+	else if(cgamode == HERCULES_MODE)
+	{
+		height += height >> 1;
+	}
+	
+	code = &work->code[0];
+	step = ((long)height<<16) / 64;
+	toppix = (viewheight-height)/2;
+	bottompix = toppix+height;
+	fix = 0;
+	
+	for (src=0;src<=64;src++)
+	{
+		startpix = fix>>16;
+		fix += step;
+		endpix = fix>>16;
 
 //
 // mark the start of the code
@@ -322,7 +267,17 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 				*code++ = 0x26;
 				*code++ = 0x88;
 				*code++ = 0x85;
-				*((unsigned far *)code)++ = pix*SCREENBWIDE;
+				
+				if(cgamode == HERCULES_MODE)
+				{
+					int planeoffset = (pix & 3) * 0x2000;
+					int pixline = pix >> 2;
+					*((unsigned far *)code)++ = planeoffset + pixline*linewidth;
+				}
+				else
+				{
+					*((unsigned far *)code)++ = pix*linewidth;
+				}
 			}
 		}
 		else
@@ -341,12 +296,19 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 				*code++ = 0x26;
 				*code++ = 0x88;
 				*code++ = 0x85;
-				*((unsigned far *)code)++ = pix*SCREENBWIDE;
+
+				if(cgamode == HERCULES_MODE)
+				{
+					int planeoffset = (pix & 3) * 0x2000;
+					int pixline = pix >> 2;
+					*((unsigned far *)code)++ = planeoffset + pixline*linewidth;
+				}
+				else
+				{
+					*((unsigned far *)code)++ = pix*linewidth;
+				}
 			}
 			
-			if(halfverticalres)
-				continue;
-
 			if((startpix | 1) < endpix)
 			{
 				// Rotate the dither pattern for odd lines
@@ -368,7 +330,16 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 					*code++ = 0x26;
 					*code++ = 0x88;
 					*code++ = 0x85;
-					*((unsigned far *)code)++ = pix*SCREENBWIDE;
+					if(cgamode == HERCULES_MODE)
+					{
+						int planeoffset = (pix & 3) * 0x2000;
+						int pixline = pix >> 2;
+						*((unsigned far *)code)++ = planeoffset + pixline*linewidth;
+					}
+					else
+					{
+						*((unsigned far *)code)++ = pix*linewidth;
+					}
 				}
 			}
 		}
@@ -555,9 +526,6 @@ asm	jmp	scaletriple					// do the next segment
 
 #else // CGA version
 
-extern	unsigned	cgabackbufferseg;
-extern	memptr		cgabackbuffer;
-
 void near ScaleLine (void)
 {
 asm	mov	cx,WORD PTR [linescale+2]
@@ -585,7 +553,7 @@ asm	mov	WORD PTR ss:[linescale],ax	// call here to start scaling
 asm	mov	si,[ds:bp+2]				// corrected top of shape for this segment
 asm	add	bp,6						// next segment list
 
-asm	mov	ax,ss:[cgabackbufferseg]
+asm	mov	ax,ss:[activebackbufferseg]
 asm	mov	es,ax
 
 asm mov ax, ss:[dithershift]		// Set up dither shift value
@@ -840,7 +808,7 @@ void ScaleShape (int xcenter, int shapenum, unsigned height)
 	slinex = xcenter;
 	stopx = shape->leftpix;
 	cmdptr = &shape->dataofs[31-stopx];
-
+	
 	while ( --srcx >=stopx && slinex>0)
 	{
 		(unsigned)linecmds = *cmdptr--;

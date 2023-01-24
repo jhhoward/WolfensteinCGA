@@ -112,6 +112,23 @@ MenuColors far menucolors[] =
 		0x0000,		// backcolor
 		0xeeee,		// signonfill
 	},
+	// HERCULES_MODE,
+	{
+		0x2aa2,		// bordcolor
+		0x2aa2,		// bordcolor2
+		0x4444,		// bkgdcolor
+		0x0000,		// stripe
+		0x5555,		// readcolor
+		0xaaaa,		// readhcolor
+		0x0000,		// viewcolor	
+		0xffff,		// textcolor		
+		0xffff,		// highlight
+		0x5555,		// viewportborder
+		0x0000,		// viewporthighlight
+		0x5555,		// pg13bg
+		0x0000,		// backcolor
+		0xffff,		// signonfill
+	},
 };
 
 

@@ -105,6 +105,8 @@ void VW_DrawPropString (char far *string)
 	byte far *destptr;
 	byte pixmask;
 
+	if(cgamode == HERCULES_MODE) return;
+
 	font = (fontstruct far *)grsegs[STARTFONT+fontnumber];
 	height = bufferheight = font->height;
 	dest = origdest = MK_FP(cgabackbufferseg,ylookup[py]+(px>>2));
@@ -413,6 +415,8 @@ void VWB_DrawPicDirectToScreen (int x, int y, int chunknum)
 	byte far *buffer;
 	unsigned off;
 	byte far* source = grsegs[chunknum];
+	
+	if(cgamode == HERCULES_MODE) return;
 
 	width = pictable[picnum].width >> 2;
 	height = pictable[picnum].height;

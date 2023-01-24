@@ -1503,6 +1503,7 @@ void DumpTimeDemoStats(void)
 	int whole, fractional;
 	
 	ShutdownId ();
+	clrscr();
 	
 	if(timedemoduration > 0)
 	{

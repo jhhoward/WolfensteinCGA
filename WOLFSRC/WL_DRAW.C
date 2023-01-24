@@ -464,7 +464,7 @@ void	near ScalePost (void)		// CGA version
 	BEGIN_PROFILE(PROF_SCALEPOST)
 	asm mov cx,[dithershift]
 	
-	asm mov ax,[cgabackbufferseg]
+	asm mov ax,[activebackbufferseg]
 	asm	mov	es,ax
 
 	asm	mov	bx,[postx]
@@ -1022,6 +1022,8 @@ t_floorcolors floorcolors[] =
 	{	0x5555,	0xaaaa,	0xdddd,	0x7777 },
 	// TANDY_MODE
 	{	0x8888,	0x8888,	0x8080,	0x0808 },
+	// HERCULES_MODE,
+	{	0x5555,	0xaaaa,	0xdddd,	0x7777 },
 };
 
 
@@ -1292,6 +1294,7 @@ void DrawPlayerWeapon (void)
 	{
 		shapenum = weaponscale[gamestate.weapon]+gamestate.weaponframe;
 		SimpleScaleShape(viewwidth/2,shapenum,viewheight+1);
+//		SimpleScaleShape(viewwidth/2,shapenum,152);
 	}
 
 	if (!timedemo && (demorecord || demoplayback))
@@ -1415,204 +1418,161 @@ void CGAClearScreen()
 	unsigned ceiling1 = floorcolors[cgamode].ceiling1, ceiling2 = floorcolors[cgamode].ceiling2;
 	unsigned floor1 = floorcolors[cgamode].floor1, floor2 = floorcolors[cgamode].floor2;
 	
-	if(!halfverticalres)
-	{	
-		//
-		// clear the screen
-		//
-		asm	mov	dx,80
-		asm	mov	ax,[viewwidth]
-		asm	shr	ax,1
-		asm	shr	ax,1
-		asm	sub	dx,ax					// dx = 40-viewwidth/2
+	//
+	// clear the screen
+	//
+	asm	mov	dx,80
+	asm	mov	ax,[viewwidth]
+	asm	shr	ax,1
+	asm	shr	ax,1
+	asm	sub	dx,ax					// dx = 40-viewwidth/2
 
-		asm	mov	bx,[viewwidth]
-		asm	shr	bx,1					// bl = viewwidth/8
-		asm	shr	bx,1					// 
-		asm	shr	bx,1					// 
-		asm	mov	bh,BYTE PTR [viewheight]
-		asm	shr	bh,1					// quarter height
-		asm	shr	bh,1					// 
+	asm	mov	bx,[viewwidth]
+	asm	shr	bx,1					// bl = viewwidth/8
+	asm	shr	bx,1					// 
+	asm	shr	bx,1					// 
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm	shr	bh,1					// quarter height
+	asm	shr	bh,1					// 
 
-		asm	mov	es,[cgabackbufferseg]
-		asm	mov	di,[bufferofs]
+	asm	mov	es,[cgabackbufferseg]
+	asm	mov	di,[bufferofs]
 
-		toploop:
-		asm	mov	cl,bl
-		asm	mov	ax, [ceiling1] //0x8888 //0xc0c0
-		asm	rep	stosw
-		asm	add	di,dx
+	toploop:
+	asm	mov	cl,bl
+	asm	mov	ax, [ceiling1] //0x8888 //0xc0c0
+	asm	rep	stosw
+	asm	add	di,dx
 
-		asm	mov	cl,bl
-		asm	mov	ax, [ceiling2] //0x8888 //0x0c0c
-		asm	rep	stosw
-		asm	add	di,dx
+	asm	mov	cl,bl
+	asm	mov	ax, [ceiling2] //0x8888 //0x0c0c
+	asm	rep	stosw
+	asm	add	di,dx
 
-		asm	dec	bh
-		asm	jnz	toploop
+	asm	dec	bh
+	asm	jnz	toploop
 
-		asm	mov	bh,BYTE PTR [viewheight]
-		asm	shr	bh,1					// quarter height
-		asm	shr	bh,1					// 
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm	shr	bh,1					// quarter height
+	asm	shr	bh,1					// 
 
-		bottomloop:
-		asm	mov	cl,bl
-		asm	mov	ax, [floor1] //0x5555 //0xcccc
-		asm	rep	stosw
-		asm	add	di,dx
+	bottomloop:
+	asm	mov	cl,bl
+	asm	mov	ax, [floor1] //0x5555 //0xcccc
+	asm	rep	stosw
+	asm	add	di,dx
 
-		asm	mov	cl,bl
-		asm	mov	ax, [floor2] // 0x5555 //0x3333
-		asm	rep	stosw
-		asm	add	di,dx
+	asm	mov	cl,bl
+	asm	mov	ax, [floor2] // 0x5555 //0x3333
+	asm	rep	stosw
+	asm	add	di,dx
 
-		asm	dec	bh
-		asm	jnz	bottomloop
-	}
-	else
-	{
-		//
-		// clear the screen
-		//
-		asm	mov	dx,80
-		asm	mov	ax,[viewwidth]
-		asm	shr	ax,1
-		asm	shr	ax,1
-		asm	sub	dx,ax					// dx = 40-viewwidth/2
-		asm add dx,[linewidth]
+	asm	dec	bh
+	asm	jnz	bottomloop
+}
 
-		asm	mov	bx,[viewwidth]
-		asm	shr	bx,1					// bl = viewwidth/8
-		asm	shr	bx,1					// 
-		asm	shr	bx,1					// 
-		asm	mov	bh,BYTE PTR [viewheight]
-		asm	shr	bh,1					// half height
-		asm	shr	bh,1					// half height
+void HerculesClearScreen()
+{
+	_fmemset(MK_FP(activebackbufferseg, 0), 0, 0x8000);
+	/*
+	unsigned ceiling1 = floorcolors[cgamode].ceiling1, ceiling2 = floorcolors[cgamode].ceiling2;
+	unsigned floor1 = floorcolors[cgamode].floor1, floor2 = floorcolors[cgamode].floor2;
+	
+	//
+	// clear the screen
+	//
+	asm	mov	dx,80
+	asm	mov	ax,[viewwidth]
+	asm	shr	ax,1
+	asm	shr	ax,1
+	asm	sub	dx,ax					// dx = 40-viewwidth/2
 
-		asm	mov	es,[cgabackbufferseg]
-		asm	mov	di,[bufferofs]
-		asm	mov	ax,[ceiling1]
+	asm	mov	bx,[viewwidth]
+	asm	shr	bx,1					// bl = viewwidth/8
+	asm	shr	bx,1					// 
+	asm	shr	bx,1					// 
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm	shr	bh,1					// quarter height
+	asm	shr	bh,1					// 
 
-		toploop2:
-		asm	mov	cl,bl
-		asm	rep	stosw
-		asm	add	di,dx
-		asm	dec	bh
-		asm	jnz	toploop2
+	asm	mov	es,[cgabackbufferseg]
+	asm	mov	di,[bufferofs]
 
-		asm	mov	bh,BYTE PTR [viewheight]
-		asm	shr	bh,1					// half height
-		asm	shr	bh,1					// half height
-		asm	mov	ax,[floor1]//0x1919
+	toploop:
+	asm	mov	cl,bl
+	asm	mov	ax, [ceiling1] //0x8888 //0xc0c0
+	asm	rep	stosw
+	asm	add	di,dx
 
-		bottomloop2:
-		asm	mov	cl,bl
-		asm	rep	stosw
-		asm	add	di,dx
-		asm	dec	bh
-		asm	jnz	bottomloop2
-	}
+	asm	mov	cl,bl
+	asm	mov	ax, [ceiling2] //0x8888 //0x0c0c
+	asm	rep	stosw
+	asm	add	di,dx
+
+	asm	dec	bh
+	asm	jnz	toploop
+
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm	shr	bh,1					// quarter height
+	asm	shr	bh,1					// 
+
+	bottomloop:
+	asm	mov	cl,bl
+	asm	mov	ax, [floor1] //0x5555 //0xcccc
+	asm	rep	stosw
+	asm	add	di,dx
+
+	asm	mov	cl,bl
+	asm	mov	ax, [floor2] // 0x5555 //0x3333
+	asm	rep	stosw
+	asm	add	di,dx
+
+	asm	dec	bh
+	asm	jnz	bottomloop
+	*/
 }
 
 void CGABlit()
 {
 	BEGIN_PROFILE(PROF_CGABLIT)
-	if(!halfverticalres)
-	{
-		asm mov dx, [viewheight]
-		asm shr dx, 1
-		asm mov si, [screenofs]
-		asm mov di, [cgascreenofs]
-			
-		asm mov bx, [viewwidth]
-		asm mov cl, 2
-		asm shr bx, cl				// bx is number of bytes to copy
+	asm mov dx, [viewheight]
+	asm shr dx, 1
+	asm mov si, [screenofs]
+	asm mov di, [cgascreenofs]
 		
-		asm mov ax, 80
-		asm sub ax, bx				// ax is the number of bytes to step to the next line
-		
-		asm push ds
-		asm mov ds, [cgabackbufferseg]
-		
-blitlines:
-		asm mov cx, 0xb800
-		asm mov es, cx
-
-		asm mov cx, bx
-		asm rep movsb
-
-		asm sub di, bx
-		asm add si, ax
-
-		asm mov cx, 0xba00
-		asm mov es, cx
-		
-		asm mov cx, bx
-		asm rep movsb
-		
-		asm add di, ax
-		asm add si, ax
-		
-		asm dec dx
-		asm jnz blitlines
-		
-		asm pop ds
-	}
-	else
-	{
-		asm mov dx, [viewheight]
-		asm shr dx, 1
-		asm mov si, [screenofs]
-		asm mov di, [cgascreenofs]
-			
-		asm mov bx, [viewwidth]
-		asm mov cl, 2
-		asm shr bx, cl				// bx is number of bytes to copy
-		
-		asm mov ax, 80
-		asm sub ax, bx				// ax is the number of bytes to step to the next line
-		
-		asm push ds
-		asm mov ds, [cgabackbufferseg]
-		asm push si
-		asm push di
-		asm push dx
+	asm mov bx, [viewwidth]
+	asm mov cl, 2
+	asm shr bx, cl				// bx is number of bytes to copy
 	
-blitevenlines:
-		asm mov cx, 0xb800
-		asm mov es, cx
+	asm mov ax, 80
+	asm sub ax, bx				// ax is the number of bytes to step to the next line
+	
+	asm push ds
+	asm mov ds, [cgabackbufferseg]
+	
+blitlines:
+	asm mov cx, 0xb800
+	asm mov es, cx
 
-		asm mov cx, bx
-		asm rep movsb
+	asm mov cx, bx
+	asm rep movsb
 
-		asm add di, ax
-		asm add si, 80
-		asm add si, ax
+	asm sub di, bx
+	asm add si, ax
 
-		asm dec dx
-		asm jnz blitevenlines
-		
-		asm pop dx
-		asm pop di
-		asm pop si
-
-blitoddlines:	
-		asm mov cx, 0xba00
-		asm mov es, cx
-
-		asm mov cx, bx
-		asm rep movsb
-
-		asm add di, ax
-		asm add si, 80
-		asm add si, ax
-
-		asm dec dx
-		asm jnz blitoddlines
-
-		asm pop ds
-	}
-	END_PROFILE(PROF_CGABLIT)
+	asm mov cx, 0xba00
+	asm mov es, cx
+	
+	asm mov cx, bx
+	asm rep movsb
+	
+	asm add di, ax
+	asm add si, ax
+	
+	asm dec dx
+	asm jnz blitlines
+	
+	asm pop ds
 }
 
 /*
@@ -1643,13 +1603,22 @@ asm	mov	cx,2048							// 64*64 / 2
 asm	rep stosw
 
 	bufferofs = 0;
-//	screenofs = 0;
+	
+	if(cgamode == HERCULES_MODE)
+	{
+		screenofs = 0;
+	}
 	bufferofs += screenofs;
 
 //
 // follow the walls from there to the right, drawwing as we go
 //
-	if(!bakefloor)
+
+	if(cgamode == HERCULES_MODE)
+	{
+		HerculesClearScreen();
+	}
+	else
 	{
 		CGAClearScreen();
 	}
@@ -1668,7 +1637,15 @@ asm	rep stosw
 //
 // show screen and time last cycle
 //
-	CGABlit();
+
+	if(cgamode == HERCULES_MODE)
+	{
+		VL_PageFlip();
+	}
+	else
+	{
+		CGABlit();
+	}
 	
 //	VL_BlitCGA();
 

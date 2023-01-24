@@ -1102,8 +1102,6 @@ extern	byte		mapmasks3[4][8];
 extern	int			maxscale,maxscaleshl2;
 
 extern	boolean	insetupscaling;
-extern	boolean	bakefloor;
-extern	boolean	halfverticalres;
 
 void SetupScaling (int maxscaleheight);
 void ScaleShape (int xcenter, int shapenum, unsigned height);

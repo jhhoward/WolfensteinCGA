@@ -33,6 +33,8 @@ cgamode_t	cgamode = CGA_MODE5;
 unsigned	cgabackbufferseg;
 memptr 		cgabackbuffer;
 
+unsigned	activebackbufferseg;
+
 //===========================================================================
 
 // asm
@@ -141,8 +143,27 @@ asm	int	0x10
 
 void	VL_SetTextMode (void)
 {
-asm	mov	ax,3
-asm	int	0x10
+	if(cgamode == HERCULES_MODE)
+	{
+		// text mode CRTC register values
+		static byte textModeCRTC[] = { 0x61, 0x50, 0x52, 0x0f, 0x19, 0x06, 0x19, 0x19, 0x02, 0x0d, 0x0b, 0x0c };
+		int i;
+		
+		outportb(0x03BF, 0x3);
+
+		for (i = 0; i < sizeof(textModeCRTC); i++)
+		{
+			outportb(0x03B4, i);
+			outportb(0x03B5, textModeCRTC[i]);
+		}
+
+		outportb(0x03B8, 0x08);
+	}
+	else
+	{
+		asm	mov	ax,3
+		asm	int	0x10
+	}
 }
 
 //===========================================================================
@@ -755,12 +776,14 @@ byte	rightmasks[4] = {1,3,7,15};
 
 void VL_Plot (int x, int y, int color)
 {
+#ifdef WITH_VGA
 	byte mask;
 
 	mask = pixmasks[x&3];
 	VGAMAPMASK(mask);
 	*(byte far *)MK_FP(SCREENSEG,bufferofs+(ylookup[y]+(x>>2))) = color;
 	VGAMAPMASK(15);
+#endif
 }
 
 
@@ -811,6 +834,8 @@ void VL_Hlin (unsigned x, unsigned y, unsigned width, unsigned color)
 	byte	far *dest;
 	byte mask;
 	byte colorwrite = (byte) color;
+	
+	if(cgamode == HERCULES_MODE) return;
 	
 	dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2));
 	
@@ -870,6 +895,8 @@ void VL_Vlin (int x, int y, int height, int color)
 	byte	far *dest;
 	byte writemask, andmask;
 	
+	if(cgamode == HERCULES_MODE) return;
+
 	writemask = 0xc0 >> ((x & 3) << 1);
 	andmask = writemask ^ 0xff;
 	writemask &= (byte) color;
@@ -948,6 +975,8 @@ void VL_Bar (int x, int y, int width, int height, int color)
 	byte colorodd, coloreven;
 	byte colorwrite;
 	byte mask;
+
+	if(cgamode == HERCULES_MODE) return;
 
 	colorodd = (byte)(color >> 8);
 	coloreven = (byte)(color);
@@ -1068,9 +1097,39 @@ void VL_MemToScreen (byte far *source, int width, int height, int x, int y)
 	dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2) );
 	//mask = 1 << (x&3);
 
-	screen = dest;
-	for (y=0;y<height;y++,screen+=linewidth,source+=width)
-		_fmemcpy (screen,source,width);
+	if(cgamode == HERCULES_MODE)
+	{
+		unsigned seg = 0xb000;
+		unsigned offset = ylookup[y >> 2]+(x>>2);
+		return;
+		
+		for (y=0;y<height;y+=4)
+		{
+			screen = MK_FP(seg, offset);
+			_fmemcpy (screen,source,width);
+			source+=width;
+
+			screen = MK_FP(seg + 0x200, offset);
+			_fmemcpy (screen,source,width);
+			source+=width;
+
+			screen = MK_FP(seg + 0x400, offset);
+			_fmemcpy (screen,source,width);
+			source+=width;
+
+			screen = MK_FP(seg + 0x600, offset);
+			_fmemcpy (screen,source,width);
+			source+=width;
+			
+			offset += linewidth;
+		}
+	}
+	else
+	{
+		screen = dest;
+		for (y=0;y<height;y++,screen+=linewidth,source+=width)
+			_fmemcpy (screen,source,width);
+	}
 	
 	//VL_BlitCGA();
 #endif
@@ -1115,6 +1174,8 @@ void VL_MaskedToScreen (byte far *source, int width, int height, int x, int y)
 	}
 #else
 	
+	if(cgamode == HERCULES_MODE) return;
+
 	width>>=2;
 	dest = MK_FP(SCREENSEG,ylookup[y]+(x>>2) );
 //	mask = 1 << (x&3);
@@ -1367,6 +1428,7 @@ void VL_SetCGAMode(void)
 		asm mov dx, 0x3d8
 		asm mov al, 0x1a
 		asm out dx, al
+		VL_SetLineWidth (40);
 		break;
 		
 		case CGA_MODE5:
@@ -1381,11 +1443,13 @@ void VL_SetCGAMode(void)
 		asm int 0x10
 		asm mov bx, 0x3b01
 		asm int 0x10
+		VL_SetLineWidth (40);
 		break;
 		
 		case CGA_MODE4:
 		asm mov ax, 0x0004
 		asm int 0x10
+		VL_SetLineWidth (40);
 		break;
 		
 		case CGA_INVERSE_MONO:
@@ -1396,24 +1460,72 @@ void VL_SetCGAMode(void)
 		asm int 0x10
 		asm mov bx, 0x0801
 		asm int 0x10
+		VL_SetLineWidth (40);
 		break;
 		
 		case TANDY_MODE:
 		asm mov ax, 0x0008
 		asm int 0x10
+		VL_SetLineWidth (40);
+		break;
+		
+		case HERCULES_MODE:
+		{
+			// graphics mode CRTC register values
+			static byte graphicsModeCRTC[] = { 0x35, 0x2d, 0x2e, 0x07, 0x5b, 0x02, 0x57, 0x57, 0x02, 0x03, 0x00, 0x00 };
+			int i;
+
+			outportb(0x03BF, 0x03);
+
+			for (i = 0; i < sizeof(graphicsModeCRTC); i++)
+			{
+				outportb(0x03B4, i);
+				outportb(0x03B5, graphicsModeCRTC[i]);
+			}
+
+			outportb(0x03B8, 0x0a);
+			VL_SetLineWidth (45);
+			
+			_fmemset(MK_FP(0xb000, 0), 0xff, 0x8000);
+			activebackbufferseg = 0xb800;
+		}
 		break;
 	}
-
+	
 	MM_GetPtr (&cgabackbuffer,0x8000);
 	cgabackbufferseg = FP_SEG(cgabackbuffer);
+
+	if(cgamode != HERCULES_MODE)
+	{
+		activebackbufferseg = cgabackbufferseg;
+	}
 	
 	_fmemset(cgabackbuffer, 0, 0x8000);
-	
-	VL_SetLineWidth (40);
+}
+
+void VL_PageFlip(void)
+{
+	switch(cgamode)
+	{
+		case HERCULES_MODE:
+		if(activebackbufferseg == 0xb000)
+		{
+			outportb(0x03B8, 0x0a);
+			activebackbufferseg = 0xb800;
+		}
+		else
+		{
+			outportb(0x03B8, 0x8a);
+			activebackbufferseg = 0xb000;
+		}
+		break;
+	}
 }
 
 void VL_BlitCGA(void)
 {
+	if(cgamode == HERCULES_MODE) return;
+
 	#if 1
 	asm mov dx, 100
 	asm mov si, 0
@@ -1486,6 +1598,17 @@ void VL_TintColor(byte color)
 	}
 }
 
+void VL_WaitVBL (int vbls)
+{
+	if(cgamode == HERCULES_MODE)
+	{
+		VL_WaitVBLHercules(vbls);
+	}
+	else
+	{
+		VL_WaitVBLCGA(vbls);
+	}
+}
 
 
 

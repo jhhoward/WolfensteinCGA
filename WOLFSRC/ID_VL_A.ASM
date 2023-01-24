@@ -27,8 +27,8 @@ starttime	dw	?
 ;
 ;==============
 
-PROC	VL_WaitVBL  num:WORD
-PUBLIC	VL_WaitVBL
+PROC	VL_WaitVBLCGA  num:WORD
+PUBLIC	VL_WaitVBLCGA
 @@wait:
 
 	mov	dx,STATUS_REGISTER_1
@@ -47,6 +47,45 @@ PUBLIC	VL_WaitVBL
 @@waitsync:
 	in	al,dx
 	test	al,8
+	jz	@@waitsync
+
+	loop	@@waitnosync
+
+	ret
+
+ENDP
+
+;===========================================================================
+
+
+;==============
+;
+; VL_WaitVBL			******** NEW *********
+;
+; Wait for the vertical retrace (returns before the actual vertical sync)
+;
+;==============
+
+PROC	VL_WaitVBLHercules  num:WORD
+PUBLIC	VL_WaitVBLHercules
+@@wait:
+
+	mov	dx,03bah
+
+	mov	cx,[num]
+;
+; wait for a display signal to make sure the raster isn't in the middle
+; of a sync
+;
+@@waitnosync:
+	in	al,dx
+	test	al,80h
+	jnz	@@waitnosync
+
+
+@@waitsync:
+	in	al,dx
+	test	al,080h
 	jz	@@waitsync
 
 	loop	@@waitnosync

@@ -70,6 +70,7 @@ int             mouseadjustment;
 
 char	configname[13]="CONFIG.";
 
+#ifdef WITH_PROFILER
 profilermarker_t profilermarkers[NUM_PROFILER_MARKERS] =
 {
 	{ "THREEDREFRESH" },
@@ -79,7 +80,7 @@ profilermarker_t profilermarkers[NUM_PROFILER_MARKERS] =
 	{ "DRAWWEAPON" },
 	{ "CGABLIT" },
 };
-
+#endif
 
 /*
 =============================================================================
@@ -770,6 +771,9 @@ void SignonScreen (void)                        // VGA version
 			case CGA_INVERSE_MONO:
 			VL_MemToScreen (&introscn + 48000,320,200,0,0);
 			break;
+			case HERCULES_MODE:
+			VL_MemToScreen (&introscn,320,200,0,0);
+			break;
 		}
 		VL_BlitCGA();
 #endif
@@ -1201,14 +1205,6 @@ void InitGame (void)
 	{
 		timedemo = true;
 	}		
-	if (MS_CheckParm ("lowres"))
-	{
-		halfverticalres = true;
-	}		
-	if (MS_CheckParm ("bakefloor"))
-	{
-		bakefloor = true;
-	}		
 
 	if (MS_CheckParm ("composite"))
 	{
@@ -1225,6 +1221,10 @@ void InitGame (void)
 	if (MS_CheckParm ("lcd"))
 	{
 		cgamode = CGA_INVERSE_MONO;
+	}		
+	if (MS_CheckParm ("hercules"))
+	{
+		cgamode = HERCULES_MODE;
 	}		
 
 	MM_Startup ();                  // so the signon screen can be freed
@@ -1356,6 +1356,11 @@ close(profilehandle);
 
 boolean SetViewSize (unsigned width, unsigned height)
 {
+	if(cgamode == HERCULES_MODE)
+	{
+		height += height >> 1;
+	}
+	
 	viewwidth = width&~15;                  // must be divisable by 16
 	viewheight = height&~1;                 // must be even
 	centerx = viewwidth/2-1;
@@ -1371,6 +1376,8 @@ boolean SetViewSize (unsigned width, unsigned height)
 // build all needed compiled scalers
 //
 //	MM_BombOnError (false);
+
+
 	SetupScaling (viewwidth*1.5);
 #if 0
 	MM_BombOnError (true);
@@ -1431,6 +1438,20 @@ void Quit (char *error)
 		geninterrupt(0x61);
 
 	ClearMemory ();
+
+	// TODO : Fix me 
+	if(cgamode == HERCULES_MODE)
+	{
+		ShutdownId ();
+		clrscr();
+		if(error && *error)
+		{
+			printf("Error: %s\n", error);
+		}
+		exit(0);
+	}
+
+
 	if (!*error)
 	{
 	 #ifndef JAPAN

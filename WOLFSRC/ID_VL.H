@@ -86,7 +86,8 @@ typedef enum
 	CGA_MODE4,
 	CGA_COMPOSITE_MODE,
 	CGA_INVERSE_MONO,
-	TANDY_MODE
+	TANDY_MODE,
+	HERCULES_MODE
 } cgamode_t;
 
 //===========================================================================
@@ -104,6 +105,7 @@ extern	unsigned	bordercolor;
 
 extern	unsigned	cgabackbufferseg;
 extern	cgamode_t	cgamode;
+extern	unsigned	activebackbufferseg;
 
 //===========================================================================
 
@@ -141,10 +143,13 @@ void VL_DePlaneVGA (void);
 void VL_SetVGAPlaneMode (void);
 void VL_ClearVideo (byte color);
 void VL_SetCGAMode (void);
+void VL_PageFlip(void);
 
 void VL_SetLineWidth (unsigned width);
 void VL_SetSplitScreen (int linenum);
 
+void VL_WaitVBLCGA (int vbls);
+void VL_WaitVBLHercules (int vbls);
 void VL_WaitVBL (int vbls);
 void VL_CrtcStart (int crtc);
 void VL_SetScreen (int crtc, int pelpan);
