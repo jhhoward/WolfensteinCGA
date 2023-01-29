@@ -17,6 +17,7 @@ t_compscale _seg *scaledirectory[MAXSCALEHEIGHT+1];
 long			fullscalefarcall[MAXSCALEHEIGHT+1];
 
 boolean		usewiderendering;
+boolean		adjustherculesaspect = false;
 int			maxscale,maxscaleshl2;
 
 boolean	insetupscaling;
@@ -214,7 +215,7 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 	{
 		height <<= 1;
 	}
-	else if(cgamode == HERCULES_MODE)
+	else if(cgamode == HERCULES_MODE && adjustherculesaspect)
 	{
 		height += height >> 1;
 	}

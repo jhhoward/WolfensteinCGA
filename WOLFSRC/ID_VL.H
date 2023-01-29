@@ -75,7 +75,7 @@ void Quit (char *error);
 //#define SCREENSEG		0xb800
 
 #define SCREENWIDTH		80			// default screen width in bytes
-#define MAXSCANLINES	200			// size of ylookup table
+#define MAXSCANLINES	348			// size of ylookup table
 
 #define CHARWIDTH		2
 #define TILEWIDTH		4
@@ -99,6 +99,7 @@ extern	unsigned	screenseg;			// set to 0xa000 for asm convenience
 
 extern	unsigned	linewidth;
 extern	unsigned	ylookup[MAXSCANLINES];
+extern	unsigned	yinterlacelookup[MAXSCANLINES];
 
 extern	boolean		screenfaded;
 extern	unsigned	bordercolor;
@@ -143,7 +144,7 @@ void VL_DePlaneVGA (void);
 void VL_SetVGAPlaneMode (void);
 void VL_ClearVideo (byte color);
 void VL_SetCGAMode (void);
-void VL_PageFlip(void);
+void VL_PageFlip(boolean copyonflip);
 
 void VL_SetLineWidth (unsigned width);
 void VL_SetSplitScreen (int linenum);

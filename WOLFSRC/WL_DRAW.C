@@ -1023,7 +1023,7 @@ t_floorcolors floorcolors[] =
 	// TANDY_MODE
 	{	0x8888,	0x8888,	0x8080,	0x0808 },
 	// HERCULES_MODE,
-	{	0x5555,	0xaaaa,	0xdddd,	0x7777 },
+	{	0x5555,	0xaaaa,	0x2222,	0x8888 },
 };
 
 
@@ -1273,6 +1273,7 @@ void DrawScaleds (void)
 ==============
 */
 
+unsigned weaponviewheight;
 int	weaponscale[NUMWEAPONS] = {SPR_KNIFEREADY,SPR_PISTOLREADY
 	,SPR_MACHINEGUNREADY,SPR_CHAINREADY};
 
@@ -1293,12 +1294,12 @@ void DrawPlayerWeapon (void)
 	if (gamestate.weapon != -1)
 	{
 		shapenum = weaponscale[gamestate.weapon]+gamestate.weaponframe;
-		SimpleScaleShape(viewwidth/2,shapenum,viewheight+1);
+		SimpleScaleShape(viewwidth/2,shapenum,weaponviewheight);
 //		SimpleScaleShape(viewwidth/2,shapenum,152);
 	}
 
 	if (!timedemo && (demorecord || demoplayback))
-		SimpleScaleShape(viewwidth/2,SPR_DEMO,viewheight+1);
+		SimpleScaleShape(viewwidth/2,SPR_DEMO,weaponviewheight);
 	
 	END_PROFILE(PROF_DRAWWEAPON)
 }
@@ -1436,7 +1437,7 @@ void CGAClearScreen()
 	asm	shr	bh,1					// 
 
 	asm	mov	es,[cgabackbufferseg]
-	asm	mov	di,[bufferofs]
+	asm	mov	di,[screenofs]
 
 	toploop:
 	asm	mov	cl,bl
@@ -1473,63 +1474,139 @@ void CGAClearScreen()
 
 void HerculesClearScreen()
 {
-	_fmemset(MK_FP(activebackbufferseg, 0), 0, 0x8000);
-	/*
 	unsigned ceiling1 = floorcolors[cgamode].ceiling1, ceiling2 = floorcolors[cgamode].ceiling2;
 	unsigned floor1 = floorcolors[cgamode].floor1, floor2 = floorcolors[cgamode].floor2;
 	
 	//
 	// clear the screen
 	//
-	asm	mov	dx,80
+	asm	mov	dx,[linewidth]
 	asm	mov	ax,[viewwidth]
-	asm	shr	ax,1
-	asm	shr	ax,1
+	asm mov cl, 2
+	asm	shr	ax,cl
 	asm	sub	dx,ax					// dx = 40-viewwidth/2
 
 	asm	mov	bx,[viewwidth]
-	asm	shr	bx,1					// bl = viewwidth/8
-	asm	shr	bx,1					// 
-	asm	shr	bx,1					// 
-	asm	mov	bh,BYTE PTR [viewheight]
-	asm	shr	bh,1					// quarter height
-	asm	shr	bh,1					// 
+	asm mov cl,3
+	asm	shr	bx,cl					// bl = viewwidth/8
 
-	asm	mov	es,[cgabackbufferseg]
-	asm	mov	di,[bufferofs]
-
-	toploop:
-	asm	mov	cl,bl
-	asm	mov	ax, [ceiling1] //0x8888 //0xc0c0
-	asm	rep	stosw
-	asm	add	di,dx
-
-	asm	mov	cl,bl
-	asm	mov	ax, [ceiling2] //0x8888 //0x0c0c
-	asm	rep	stosw
-	asm	add	di,dx
-
-	asm	dec	bh
-	asm	jnz	toploop
+	// First bank
+	asm	mov	es,[activebackbufferseg]
+	asm	mov	di,[screenofs]
 
 	asm	mov	bh,BYTE PTR [viewheight]
-	asm	shr	bh,1					// quarter height
-	asm	shr	bh,1					// 
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [ceiling1] 
 
-	bottomloop:
+	toploop1:
 	asm	mov	cl,bl
-	asm	mov	ax, [floor1] //0x5555 //0xcccc
 	asm	rep	stosw
 	asm	add	di,dx
-
-	asm	mov	cl,bl
-	asm	mov	ax, [floor2] // 0x5555 //0x3333
-	asm	rep	stosw
-	asm	add	di,dx
-
 	asm	dec	bh
-	asm	jnz	bottomloop
-	*/
+	asm	jnz	toploop1
+	
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [floor1] 
+
+	bottomloop1:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	bottomloop1
+
+	// Second bank
+	asm mov ax,[activebackbufferseg]
+	asm add ax,0x200
+	asm	mov	es,ax
+	asm	mov	di,[screenofs]
+
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [ceiling2] 
+
+	toploop2:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	toploop2
+	
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [floor2] 
+
+	bottomloop2:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	bottomloop2
+
+	// Third bank
+	asm mov ax,[activebackbufferseg]
+	asm add ax,0x400
+	asm	mov	es,ax
+	asm	mov	di,[screenofs]
+
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [ceiling1] 
+
+	toploop3:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	toploop3
+	
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [floor1] 
+
+	bottomloop3:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	bottomloop3
+	
+	// Fourth bank
+	asm mov ax,[activebackbufferseg]
+	asm add ax,0x600
+	asm	mov	es,ax
+	asm	mov	di,[screenofs]
+
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [ceiling2] 
+
+	toploop4:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	toploop4
+	
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [floor2] 
+
+	bottomloop4:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	bottomloop4
 }
 
 void CGABlit()
@@ -1602,11 +1679,11 @@ asm	xor	ax,ax
 asm	mov	cx,2048							// 64*64 / 2
 asm	rep stosw
 
-	bufferofs = 0;
+	//bufferofs = 0;
 	
 	if(cgamode == HERCULES_MODE)
 	{
-		screenofs = 0;
+//		screenofs = 0;
 	}
 	bufferofs += screenofs;
 
@@ -1640,7 +1717,7 @@ asm	rep stosw
 
 	if(cgamode == HERCULES_MODE)
 	{
-		VL_PageFlip();
+		VL_PageFlip(false);
 	}
 	else
 	{

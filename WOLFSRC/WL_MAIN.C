@@ -775,7 +775,7 @@ void SignonScreen (void)                        // VGA version
 			VL_MemToScreen (&introscn,320,200,0,0);
 			break;
 		}
-		VL_BlitCGA();
+		VW_UpdateScreen();
 #endif
 	}
 
@@ -823,7 +823,7 @@ void FinishSignon (void)
 	#endif
 
 	#ifndef WITH_VGA
-	VL_BlitCGA();
+	VW_UpdateScreen();
 	#endif
 	
 	if (!NoWait && !timedemo)
@@ -843,7 +843,7 @@ void FinishSignon (void)
 	#endif
 
 	#ifndef WITH_VGA
-	VL_BlitCGA();
+	VW_UpdateScreen();
 	#endif
 
 	#endif
@@ -1225,6 +1225,7 @@ void InitGame (void)
 	if (MS_CheckParm ("hercules"))
 	{
 		cgamode = HERCULES_MODE;
+		adjustherculesaspect = true;
 	}		
 
 	MM_Startup ();                  // so the signon screen can be freed
@@ -1278,8 +1279,10 @@ void InitGame (void)
 
 	updateptr = &update[0];
 
+#ifdef WITH_VGA
 	bufferofs = 0;
 	displayofs = 0;
+#endif
 	ReadConfig ();
 
 
@@ -1334,7 +1337,7 @@ close(profilehandle);
 	displayofs = PAGE1START;
 	bufferofs = PAGE2START;
 #else
-	VL_BlitCGA();
+	VW_UpdateScreen();
 #endif
 
 	if (virtualreality)
@@ -1356,9 +1359,12 @@ close(profilehandle);
 
 boolean SetViewSize (unsigned width, unsigned height)
 {
-	if(cgamode == HERCULES_MODE)
+	weaponviewheight = (height&~1)+1;
+
+	if(cgamode == HERCULES_MODE && adjustherculesaspect)
 	{
 		height += height >> 1;
+		height = height&~7;
 	}
 	
 	viewwidth = width&~15;                  // must be divisable by 16
@@ -1367,6 +1373,11 @@ boolean SetViewSize (unsigned width, unsigned height)
 	shootdelta = viewwidth/10;
 	screenofs = ((200-STATUSLINES-viewheight)/2*SCREENWIDTH+(320-viewwidth)/8);
 	cgascreenofs = ((200-STATUSLINES-viewheight)/4*SCREENWIDTH+(320-viewwidth)/8);
+	
+	if(cgamode == HERCULES_MODE)
+	{
+		screenofs = ((348-STATUSLINES-viewheight)/8*linewidth+(360-viewwidth)/8);
+	}
 //
 // calculate trace angles and projection constants
 //

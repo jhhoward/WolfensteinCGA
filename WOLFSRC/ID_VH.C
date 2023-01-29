@@ -105,76 +105,91 @@ void VW_DrawPropString (char far *string)
 	byte far *destptr;
 	byte pixmask;
 
-	if(cgamode == HERCULES_MODE) return;
-
 	font = (fontstruct far *)grsegs[STARTFONT+fontnumber];
 	height = bufferheight = font->height;
-	dest = origdest = MK_FP(cgabackbufferseg,ylookup[py]+(px>>2));
 	mask = 1<<(px&3);
 
 	pixmask = 0xc0 >> ((px & 3) << 1);
-
-	while ((ch = *string++)!=0)
+	
+	if(cgamode == HERCULES_MODE)
 	{
-		width = step = font->width[ch];
-		source = ((byte far *)font)+font->location[ch];
-		while (width--)
+		while ((ch = *string++)!=0)
 		{
-			//VGAMAPMASK(mask);
-#if 0
-asm	mov	ah,[BYTE PTR fontcolor]
-asm	mov	bx,[step]
-asm	mov	cx,[height]
-asm	mov	dx,[linewidth]
-asm	lds	si,[source]
-asm	les	di,[dest]
-
-vertloop:
-asm	mov	al,[si]
-asm	or	al,al
-asm	je	next
-asm	mov	[es:di],ah			// draw color
-
-next:
-asm	add	si,bx
-asm	add	di,dx
-asm	loop	vertloop
-asm	mov	ax,ss
-asm	mov	ds,ax
-
-#else
-			y = height;
-			srcptr = source;
-			destptr = dest;
-			while(y--)
+			width = step = font->width[ch];
+			source = ((byte far *)font)+font->location[ch];
+			while (width--)
 			{
-				if(*srcptr)
+				srcptr = source;
+				for(y = 0; y < height; y++)
 				{
-					*destptr &= ~pixmask;
-					*destptr |= (pixmask & fontcolor);
+					destptr = MK_FP(activebackbufferseg,yinterlacelookup[py+y]+(px>>2)+bufferofs);
+					if(*srcptr)
+					{
+						*destptr &= ~pixmask;
+						*destptr |= (pixmask & fontcolor);
+					}
+					srcptr += step;
+					destptr += linewidth;
 				}
-				srcptr += step;
-				destptr += linewidth;
-			}
-#endif
 
-			source++;
-			px++;
-			mask <<= 1;
-			if (mask == 16)
-			{
-				mask = 1;
-				dest++;
-			}
-			pixmask >>= 2;
-			if(!pixmask)
-			{
-				pixmask = 0xc0;
+				source++;
+				px++;
+				mask <<= 1;
+				if (mask == 16)
+				{
+					mask = 1;
+					dest++;
+				}
+				pixmask >>= 2;
+				if(!pixmask)
+				{
+					pixmask = 0xc0;
+				}
 			}
 		}
 	}
-bufferheight = height;
-bufferwidth = ((dest+1)-origdest)*4;
+	else
+	{
+		dest = origdest = MK_FP(cgabackbufferseg,ylookup[py]+(px>>2));
+
+		while ((ch = *string++)!=0)
+		{
+			width = step = font->width[ch];
+			source = ((byte far *)font)+font->location[ch];
+			while (width--)
+			{
+				y = height;
+				srcptr = source;
+				destptr = dest;
+				while(y--)
+				{
+					if(*srcptr)
+					{
+						*destptr &= ~pixmask;
+						*destptr |= (pixmask & fontcolor);
+					}
+					srcptr += step;
+					destptr += linewidth;
+				}
+
+				source++;
+				px++;
+				mask <<= 1;
+				if (mask == 16)
+				{
+					mask = 1;
+					dest++;
+				}
+				pixmask >>= 2;
+				if(!pixmask)
+				{
+					pixmask = 0xc0;
+				}
+			}
+		}
+	}
+	bufferheight = height;
+	bufferwidth = ((dest+1)-origdest)*4;
 }
 #endif
 
@@ -416,31 +431,63 @@ void VWB_DrawPicDirectToScreen (int x, int y, int chunknum)
 	unsigned off;
 	byte far* source = grsegs[chunknum];
 	
-	if(cgamode == HERCULES_MODE) return;
-
-	width = pictable[picnum].width >> 2;
-	height = pictable[picnum].height;
-	halfheight = height >> 1;
-	
-	off = ylookup[y >> 1]+x;
-
-	evenlines = MK_FP(0xb800, off);
-	oddlines = MK_FP(0xba00, off);
-	buffer = MK_FP(cgabackbufferseg, ylookup[y]+x);
-		
-	while(halfheight--)
+	if(cgamode == HERCULES_MODE)
 	{
-		_fmemcpy (evenlines,source,width);
-		_fmemcpy (buffer,source,width);
-		evenlines+=linewidth;
-		buffer+=linewidth;
-		source+=width;
+		unsigned quarterheight;
+		width = pictable[picnum].width >> 2;
+		height = pictable[picnum].height;
+		quarterheight = height >> 2;
+		off = ylookup[y >> 2]+x+bufferofs;
 
-		_fmemcpy (oddlines,source,width);
-		_fmemcpy (buffer,source,width);
-		buffer+=linewidth;
-		oddlines+=linewidth;
-		source+=width;
+		buffer = MK_FP(0xb000, off);
+			
+		while(quarterheight--)
+		{
+			_fmemcpy (buffer,source,width);
+			_fmemcpy (buffer+0x8000,source,width);
+			source+=width;
+
+			_fmemcpy (buffer+0x2000,source,width);
+			_fmemcpy (buffer+0xa000,source,width);
+			source+=width;
+
+			_fmemcpy (buffer+0x4000,source,width);
+			_fmemcpy (buffer+0xc000,source,width);
+			source+=width;
+
+			_fmemcpy (buffer+0x6000,source,width);
+			_fmemcpy (buffer+0xe000,source,width);
+			source+=width;
+
+			buffer+=linewidth;
+		}
+	}
+	else
+	{
+		width = pictable[picnum].width >> 2;
+		height = pictable[picnum].height;
+		halfheight = height >> 1;
+		
+		off = ylookup[y >> 1]+x;
+
+		evenlines = MK_FP(0xb800, off);
+		oddlines = MK_FP(0xba00, off);
+		buffer = MK_FP(cgabackbufferseg, ylookup[y]+x);
+			
+		while(halfheight--)
+		{
+			_fmemcpy (evenlines,source,width);
+			_fmemcpy (buffer,source,width);
+			evenlines+=linewidth;
+			buffer+=linewidth;
+			source+=width;
+
+			_fmemcpy (oddlines,source,width);
+			_fmemcpy (buffer,source,width);
+			buffer+=linewidth;
+			oddlines+=linewidth;
+			source+=width;
+		}
 	}
 }
 
@@ -488,7 +535,14 @@ void VW_UpdateScreen (void)
 #ifdef WITH_VGA
 	VH_UpdateScreen ();
 #else
-	VL_BlitCGA();
+	if(cgamode == HERCULES_MODE)
+	{
+		VL_PageFlip(true);
+	}
+	else
+	{
+		VL_BlitCGA();
+	}
 #endif
 }
 

@@ -20,6 +20,7 @@ unsigned	screenseg=SCREENSEG;		// set to 0xa000 for asm convenience
 
 unsigned	linewidth;
 unsigned	ylookup[MAXSCANLINES];
+unsigned	yinterlacelookup[MAXSCANLINES];
 
 boolean		screenfaded;
 unsigned	bordercolor;
@@ -302,6 +303,28 @@ void VL_SetLineWidth (unsigned width)
 	{
 		ylookup[i]=offset;
 		offset += linewidth;
+	}
+	
+	offset = 0;
+	if(cgamode == HERCULES_MODE)
+	{
+		for (i=0;i<MAXSCANLINES;i+=4)
+		{
+			yinterlacelookup[i]=offset;
+			yinterlacelookup[i+1]=offset+0x2000;
+			yinterlacelookup[i+2]=offset+0x4000;
+			yinterlacelookup[i+3]=offset+0x6000;
+			offset += linewidth;
+		}
+	}
+	else
+	{
+		for (i=0;i<MAXSCANLINES;i+=2)
+		{
+			yinterlacelookup[i]=offset;
+			yinterlacelookup[i+1]=offset+0x2000;
+			offset += linewidth;
+		}
 	}
 }
 
@@ -595,6 +618,20 @@ void VL_FadeOut (int start, int end, int red, int green, int blue, int steps)
 		_fmemset(MK_FP(0xba00, 0), 0xff, 0x2000);
 		VL_WaitVBL(5);
 		break;
+		
+		case HERCULES_MODE:
+		{
+			unsigned frontbufferseg = activebackbufferseg == 0xb000 ? 0xb800 : 0xb000;
+			_fmemset(MK_FP(frontbufferseg, 0), 0, 0x2000);
+			VL_WaitVBL(2);
+			_fmemset(MK_FP(frontbufferseg, 0x2000), 0, 0x2000);
+			VL_WaitVBL(2);
+			_fmemset(MK_FP(frontbufferseg, 0x4000), 0, 0x2000);
+			VL_WaitVBL(2);
+			_fmemset(MK_FP(frontbufferseg, 0x6000), 0, 0x2000);
+			VL_WaitVBL(2);
+		}
+		break;
 	}
 #endif
 
@@ -835,9 +872,14 @@ void VL_Hlin (unsigned x, unsigned y, unsigned width, unsigned color)
 	byte mask;
 	byte colorwrite = (byte) color;
 	
-	if(cgamode == HERCULES_MODE) return;
-	
-	dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2));
+	if(cgamode == HERCULES_MODE)
+	{
+		dest = MK_FP(activebackbufferseg,yinterlacelookup[y]+(x>>2) + bufferofs);
+	}
+	else
+	{
+		dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2));
+	}
 	
 	mask = 0x3 << ((3 - (x & 3)) << 1);
 	while(mask && width)
@@ -895,18 +937,30 @@ void VL_Vlin (int x, int y, int height, int color)
 	byte	far *dest;
 	byte writemask, andmask;
 	
-	if(cgamode == HERCULES_MODE) return;
-
 	writemask = 0xc0 >> ((x & 3) << 1);
 	andmask = writemask ^ 0xff;
 	writemask &= (byte) color;
 	
-	dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2));
-
-	while (height--)
+	if(cgamode == HERCULES_MODE)
 	{
-		*dest = (*dest & andmask) | writemask;
-		dest += linewidth;
+		x >>= 2;
+
+		while (height--)
+		{
+			dest = MK_FP(cgabackbufferseg,yinterlacelookup[y]+x+bufferofs);
+			*dest = (*dest & andmask) | writemask;
+			y++;
+		}
+	}
+	else
+	{
+		dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2));
+
+		while (height--)
+		{
+			*dest = (*dest & andmask) | writemask;
+			dest += linewidth;
+		}
 	}
 	
 #endif
@@ -976,14 +1030,19 @@ void VL_Bar (int x, int y, int width, int height, int color)
 	byte colorwrite;
 	byte mask;
 
-	if(cgamode == HERCULES_MODE) return;
-
 	colorodd = (byte)(color >> 8);
 	coloreven = (byte)(color);
 	
 	while(height--)
 	{
-		dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2));
+		if(cgamode == HERCULES_MODE)
+		{
+			dest = MK_FP(activebackbufferseg,yinterlacelookup[y]+(x>>2) + bufferofs);
+		}
+		else
+		{
+			dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2));
+		}
 		colorwrite = (y & 1) ? colorodd : coloreven;
 		pixels = width;
 		
@@ -1099,9 +1158,19 @@ void VL_MemToScreen (byte far *source, int width, int height, int x, int y)
 
 	if(cgamode == HERCULES_MODE)
 	{
-		unsigned seg = 0xb000;
-		unsigned offset = ylookup[y >> 2]+(x>>2);
-		return;
+#if 1
+		unsigned seg = activebackbufferseg;
+		x >>= 2;
+		
+		while(height--)
+		{
+			screen = MK_FP(seg,yinterlacelookup[y++]+x+bufferofs);
+			_fmemcpy (screen,source,width);
+			source+=width;
+		}
+#else
+		unsigned seg = activebackbufferseg;
+		unsigned offset = ylookup[y >> 2]+(x>>2) + bufferofs;
 		
 		for (y=0;y<height;y+=4)
 		{
@@ -1123,6 +1192,7 @@ void VL_MemToScreen (byte far *source, int width, int height, int x, int y)
 			
 			offset += linewidth;
 		}
+		#endif
 	}
 	else
 	{
@@ -1486,8 +1556,10 @@ void VL_SetCGAMode(void)
 			outportb(0x03B8, 0x0a);
 			VL_SetLineWidth (45);
 			
-			_fmemset(MK_FP(0xb000, 0), 0xff, 0x8000);
+			_fmemset(MK_FP(0xb000, 0), 0, 0x8000);
+			_fmemset(MK_FP(0xb800, 0), 0, 0x8000);
 			activebackbufferseg = 0xb800;
+			bufferofs = 90 * ((348 - 200) / 8) + (720 - 640) / 16;
 		}
 		break;
 	}
@@ -1503,20 +1575,28 @@ void VL_SetCGAMode(void)
 	_fmemset(cgabackbuffer, 0, 0x8000);
 }
 
-void VL_PageFlip(void)
+void VL_PageFlip(boolean copyonflip)
 {
 	switch(cgamode)
 	{
 		case HERCULES_MODE:
-		if(activebackbufferseg == 0xb000)
 		{
-			outportb(0x03B8, 0x0a);
-			activebackbufferseg = 0xb800;
-		}
-		else
-		{
-			outportb(0x03B8, 0x8a);
-			activebackbufferseg = 0xb000;
+			unsigned frontbufferseg = activebackbufferseg;
+			if(activebackbufferseg == 0xb000)
+			{
+				outportb(0x03B8, 0x0a);
+				activebackbufferseg = 0xb800;
+			}
+			else
+			{
+				outportb(0x03B8, 0x8a);
+				activebackbufferseg = 0xb000;
+			}
+			
+			if(copyonflip)
+			{
+				_fmemcpy(MK_FP(activebackbufferseg, 0), MK_FP(frontbufferseg, 0), 0x8000);
+			}
 		}
 		break;
 	}

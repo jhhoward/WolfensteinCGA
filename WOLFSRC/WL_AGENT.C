@@ -259,6 +259,16 @@ void StatusDrawPic (unsigned x, unsigned y, unsigned picnum)
 	bufferofs = temp;
 #else
 	VWB_DrawPicDirectToScreen(x << 1, y + 200 - STATUSLINES, picnum);
+
+	if(cgamode == HERCULES_MODE && adjustherculesaspect)
+	{
+		VWB_DrawPicDirectToScreen(x << 1, y + 240 - STATUSLINES, picnum);
+	}
+	else
+	{
+		VWB_DrawPicDirectToScreen(x << 1, y + 200 - STATUSLINES, picnum);
+	}
+
 #endif
 }
 

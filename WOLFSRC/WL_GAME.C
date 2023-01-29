@@ -888,7 +888,15 @@ void DrawPlayScreen (void)
 	bufferofs = temp;
 #else
 	DrawPlayBorder ();
-	VWB_DrawPic (0,200-STATUSLINES,STATUSBARPIC);
+
+	if(cgamode == HERCULES_MODE && adjustherculesaspect)
+	{
+		VWB_DrawPic (0,240-STATUSLINES,STATUSBARPIC);
+	}
+	else
+	{
+		VWB_DrawPic (0,200-STATUSLINES,STATUSBARPIC);
+	}
 #endif
 
 	UNCACHEGRCHUNK (STATUSBARPIC);
