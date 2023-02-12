@@ -260,7 +260,7 @@ void StatusDrawPic (unsigned x, unsigned y, unsigned picnum)
 #else
 	VWB_DrawPicDirectToScreen(x << 1, y + 200 - STATUSLINES, picnum);
 
-	if(cgamode == HERCULES_MODE && adjustherculesaspect)
+	if(cgamode == HERCULES720_MODE && adjustherculesaspect)
 	{
 		VWB_DrawPicDirectToScreen(x << 1, y + 240 - STATUSLINES, picnum);
 	}

@@ -1022,7 +1022,9 @@ t_floorcolors floorcolors[] =
 	{	0x5555,	0xaaaa,	0xdddd,	0x7777 },
 	// TANDY_MODE
 	{	0x8888,	0x8888,	0x8080,	0x0808 },
-	// HERCULES_MODE,
+	// HERCULES720_MODE,
+	{	0x5555,	0xaaaa,	0x2222,	0x8888 },
+	// HERCULES640_MODE,
 	{	0x5555,	0xaaaa,	0x2222,	0x8888 },
 };
 
@@ -1609,6 +1611,84 @@ void HerculesClearScreen()
 	asm	jnz	bottomloop4
 }
 
+void Hercules640ClearScreen()
+{
+	unsigned ceiling1 = floorcolors[cgamode].ceiling1, ceiling2 = floorcolors[cgamode].ceiling2;
+	unsigned floor1 = floorcolors[cgamode].floor1, floor2 = floorcolors[cgamode].floor2;
+	
+	//
+	// clear the screen
+	//
+	asm	mov	dx,[linewidth]
+	asm	mov	ax,[viewwidth]
+	asm mov cl, 2
+	asm	shr	ax,cl
+	asm	sub	dx,ax					// dx = 40-viewwidth/2
+
+	asm	mov	bx,[viewwidth]
+	asm mov cl,3
+	asm	shr	bx,cl					// bl = viewwidth/8
+
+	// First bank
+	asm	mov	es,[activebackbufferseg]
+	asm	mov	di,[screenofs]
+
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,2
+	asm	shr	bh,cl					// 1/4 height
+	asm	mov	ax, [ceiling1] 
+
+	toploop1:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	toploop1
+	
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,2
+	asm	shr	bh,cl					// 1/4 height
+	asm	mov	ax, [floor1] 
+
+	bottomloop1:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	bottomloop1
+
+	// Second bank
+	asm mov ax,[activebackbufferseg]
+	asm add ax,0x200
+	asm	mov	es,ax
+	asm	mov	di,[screenofs]
+
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,2
+	asm	shr	bh,cl					// 1/4 height
+	asm	mov	ax, [ceiling2] 
+
+	toploop2:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	toploop2
+	
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,2
+	asm	shr	bh,cl					// 1/4 height
+	asm	mov	ax, [floor2] 
+
+	bottomloop2:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	bottomloop2
+
+}
+
 void CGABlit()
 {
 	BEGIN_PROFILE(PROF_CGABLIT)
@@ -1679,21 +1759,18 @@ asm	xor	ax,ax
 asm	mov	cx,2048							// 64*64 / 2
 asm	rep stosw
 
-	//bufferofs = 0;
-	
-	if(cgamode == HERCULES_MODE)
-	{
-//		screenofs = 0;
-	}
-	bufferofs += screenofs;
 
 //
 // follow the walls from there to the right, drawwing as we go
 //
 
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES720_MODE)
 	{
 		HerculesClearScreen();
+	}
+	else if(cgamode == HERCULES640_MODE)
+	{
+		Hercules640ClearScreen();
 	}
 	else
 	{
@@ -1715,7 +1792,7 @@ asm	rep stosw
 // show screen and time last cycle
 //
 
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE)
 	{
 		VL_PageFlip(false);
 	}
@@ -1736,7 +1813,7 @@ asm	rep stosw
 
 	}
 */
-	bufferofs -= screenofs;
+	//bufferofs -= screenofs;
 /*	displayofs = bufferofs;
 
 	asm	cli

@@ -144,7 +144,7 @@ asm	int	0x10
 
 void	VL_SetTextMode (void)
 {
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE)
 	{
 		// text mode CRTC register values
 		static byte textModeCRTC[] = { 0x61, 0x50, 0x52, 0x0f, 0x19, 0x06, 0x19, 0x19, 0x02, 0x0d, 0x0b, 0x0c };
@@ -306,7 +306,7 @@ void VL_SetLineWidth (unsigned width)
 	}
 	
 	offset = 0;
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES720_MODE)
 	{
 		for (i=0;i<MAXSCANLINES;i+=4)
 		{
@@ -619,7 +619,8 @@ void VL_FadeOut (int start, int end, int red, int green, int blue, int steps)
 		VL_WaitVBL(5);
 		break;
 		
-		case HERCULES_MODE:
+		case HERCULES640_MODE:
+		case HERCULES720_MODE:
 		{
 			unsigned frontbufferseg = activebackbufferseg == 0xb000 ? 0xb800 : 0xb000;
 			_fmemset(MK_FP(frontbufferseg, 0), 0, 0x2000);
@@ -872,7 +873,7 @@ void VL_Hlin (unsigned x, unsigned y, unsigned width, unsigned color)
 	byte mask;
 	byte colorwrite = (byte) color;
 	
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE)
 	{
 		dest = MK_FP(activebackbufferseg,yinterlacelookup[y]+(x>>2) + bufferofs);
 	}
@@ -941,7 +942,7 @@ void VL_Vlin (int x, int y, int height, int color)
 	andmask = writemask ^ 0xff;
 	writemask &= (byte) color;
 	
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE)
 	{
 		x >>= 2;
 
@@ -1035,7 +1036,7 @@ void VL_Bar (int x, int y, int width, int height, int color)
 	
 	while(height--)
 	{
-		if(cgamode == HERCULES_MODE)
+		if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE)
 		{
 			dest = MK_FP(activebackbufferseg,yinterlacelookup[y]+(x>>2) + bufferofs);
 		}
@@ -1156,7 +1157,7 @@ void VL_MemToScreen (byte far *source, int width, int height, int x, int y)
 	dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2) );
 	//mask = 1 << (x&3);
 
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE)
 	{
 #if 1
 		unsigned seg = activebackbufferseg;
@@ -1244,7 +1245,7 @@ void VL_MaskedToScreen (byte far *source, int width, int height, int x, int y)
 	}
 #else
 	
-	if(cgamode == HERCULES_MODE) return;
+	if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE) return;
 
 	width>>=2;
 	dest = MK_FP(SCREENSEG,ylookup[y]+(x>>2) );
@@ -1539,7 +1540,7 @@ void VL_SetCGAMode(void)
 		VL_SetLineWidth (40);
 		break;
 		
-		case HERCULES_MODE:
+		case HERCULES720_MODE:
 		{
 			// graphics mode CRTC register values
 			static byte graphicsModeCRTC[] = { 0x35, 0x2d, 0x2e, 0x07, 0x5b, 0x02, 0x57, 0x57, 0x02, 0x03, 0x00, 0x00 };
@@ -1562,12 +1563,35 @@ void VL_SetCGAMode(void)
 			bufferofs = 90 * ((348 - 200) / 8) + (720 - 640) / 16;
 		}
 		break;
+		case HERCULES640_MODE:
+		{
+			// graphics mode CRTC register values
+			static byte graphicsMode640CRTC[] = { 0x34, 0x28, 0x2A, 0x47, 0x69, 0x00, 0x64, 0x65, 0x02, 0x01 };
+			int i;
+
+			outportb(0x03BF, 0x03);
+
+			for (i = 0; i < sizeof(graphicsMode640CRTC); i++)
+			{
+				outportb(0x03B4, i);
+				outportb(0x03B5, graphicsMode640CRTC[i]);
+			}
+
+			outportb(0x03B8, 0x0a);
+			VL_SetLineWidth (40);
+			
+			_fmemset(MK_FP(0xb000, 0), 0, 0x8000);
+			_fmemset(MK_FP(0xb800, 0), 0, 0x8000);
+			activebackbufferseg = 0xb800;
+			bufferofs = 0; // 90 * ((348 - 200) / 8) + (720 - 640) / 16;
+		}
+		break;
 	}
 	
 	MM_GetPtr (&cgabackbuffer,0x8000);
 	cgabackbufferseg = FP_SEG(cgabackbuffer);
 
-	if(cgamode != HERCULES_MODE)
+	if(cgamode != HERCULES720_MODE && cgamode != HERCULES640_MODE)
 	{
 		activebackbufferseg = cgabackbufferseg;
 	}
@@ -1579,7 +1603,8 @@ void VL_PageFlip(boolean copyonflip)
 {
 	switch(cgamode)
 	{
-		case HERCULES_MODE:
+		case HERCULES720_MODE:
+		case HERCULES640_MODE:
 		{
 			unsigned frontbufferseg = activebackbufferseg;
 			if(activebackbufferseg == 0xb000)
@@ -1604,7 +1629,7 @@ void VL_PageFlip(boolean copyonflip)
 
 void VL_BlitCGA(void)
 {
-	if(cgamode == HERCULES_MODE) return;
+	if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE) return;
 
 	#if 1
 	asm mov dx, 100
@@ -1680,7 +1705,7 @@ void VL_TintColor(byte color)
 
 void VL_WaitVBL (int vbls)
 {
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE)
 	{
 		VL_WaitVBLHercules(vbls);
 	}

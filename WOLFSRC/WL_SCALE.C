@@ -88,17 +88,14 @@ void SetupScaling (int maxscaleheight)
 		case CGA_COMPOSITE_MODE:
 		dithershift = 4;
 		break;
-		case HERCULES_MODE:
+		case HERCULES720_MODE:
+		case HERCULES640_MODE:
 		dithershift = 3;
 		break;
 	}
 	if (MS_CheckParm("nodither"))
 	{
 		dithershift = 0;
-	}
-	if (MS_CheckParm("wide"))
-	{
-		usewiderendering = true;
 	}
 #endif
 
@@ -215,7 +212,7 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 	{
 		height <<= 1;
 	}
-	else if(cgamode == HERCULES_MODE && adjustherculesaspect)
+	else if(cgamode == HERCULES720_MODE)// && adjustherculesaspect)
 	{
 		height += height >> 1;
 	}
@@ -269,10 +266,16 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 				*code++ = 0x88;
 				*code++ = 0x85;
 				
-				if(cgamode == HERCULES_MODE)
+				if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE)
 				{
 					int planeoffset = (pix & 3) * 0x2000;
 					int pixline = pix >> 2;
+					*((unsigned far *)code)++ = planeoffset + pixline*linewidth;
+				}
+				else if(cgamode == HERCULES640_MODE)
+				{
+					int planeoffset = (pix & 1) * 0x2000;
+					int pixline = pix >> 1;
 					*((unsigned far *)code)++ = planeoffset + pixline*linewidth;
 				}
 				else
@@ -298,10 +301,16 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 				*code++ = 0x88;
 				*code++ = 0x85;
 
-				if(cgamode == HERCULES_MODE)
+				if(cgamode == HERCULES720_MODE)
 				{
 					int planeoffset = (pix & 3) * 0x2000;
 					int pixline = pix >> 2;
+					*((unsigned far *)code)++ = planeoffset + pixline*linewidth;
+				}
+				else if(cgamode == HERCULES640_MODE)
+				{
+					int planeoffset = (pix & 1) * 0x2000;
+					int pixline = pix >> 1;
 					*((unsigned far *)code)++ = planeoffset + pixline*linewidth;
 				}
 				else
@@ -331,10 +340,16 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 					*code++ = 0x26;
 					*code++ = 0x88;
 					*code++ = 0x85;
-					if(cgamode == HERCULES_MODE)
+					if(cgamode == HERCULES720_MODE)
 					{
 						int planeoffset = (pix & 3) * 0x2000;
 						int pixline = pix >> 2;
+						*((unsigned far *)code)++ = planeoffset + pixline*linewidth;
+					}
+					else if(cgamode == HERCULES640_MODE)
+					{
+						int planeoffset = (pix & 1) * 0x2000;
+						int pixline = pix >> 1;
 						*((unsigned far *)code)++ = planeoffset + pixline*linewidth;
 					}
 					else

@@ -889,7 +889,7 @@ void DrawPlayScreen (void)
 #else
 	DrawPlayBorder ();
 
-	if(cgamode == HERCULES_MODE && adjustherculesaspect)
+	if(cgamode == HERCULES720_MODE && adjustherculesaspect)
 	{
 		VWB_DrawPic (0,240-STATUSLINES,STATUSBARPIC);
 	}

@@ -111,7 +111,7 @@ void VW_DrawPropString (char far *string)
 
 	pixmask = 0xc0 >> ((px & 3) << 1);
 	
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE)
 	{
 		while ((ch = *string++)!=0)
 		{
@@ -431,8 +431,22 @@ void VWB_DrawPicDirectToScreen (int x, int y, int chunknum)
 	unsigned off;
 	byte far* source = grsegs[chunknum];
 	
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE)
 	{
+		width = pictable[picnum].width >> 2;
+		height = pictable[picnum].height;
+		
+		while(height--)
+		{
+			off = yinterlacelookup[y++]+x+bufferofs;
+			buffer = MK_FP(0xb000,off);
+			_fmemcpy (buffer,source,width);
+			buffer = MK_FP(0xb800,off);
+			_fmemcpy (buffer,source,width);
+			source+=width;
+		}
+
+		/*
 		unsigned quarterheight;
 		width = pictable[picnum].width >> 2;
 		height = pictable[picnum].height;
@@ -461,6 +475,7 @@ void VWB_DrawPicDirectToScreen (int x, int y, int chunknum)
 
 			buffer+=linewidth;
 		}
+		*/
 	}
 	else
 	{
@@ -535,7 +550,7 @@ void VW_UpdateScreen (void)
 #ifdef WITH_VGA
 	VH_UpdateScreen ();
 #else
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE)
 	{
 		VL_PageFlip(true);
 	}

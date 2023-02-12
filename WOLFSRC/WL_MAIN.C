@@ -771,7 +771,8 @@ void SignonScreen (void)                        // VGA version
 			case CGA_INVERSE_MONO:
 			VL_MemToScreen (&introscn + 48000,320,200,0,0);
 			break;
-			case HERCULES_MODE:
+			case HERCULES720_MODE:
+			case HERCULES640_MODE:
 			VL_MemToScreen (&introscn,320,200,0,0);
 			break;
 		}
@@ -1222,11 +1223,21 @@ void InitGame (void)
 	{
 		cgamode = CGA_INVERSE_MONO;
 	}		
+	if (MS_CheckParm ("hercules720"))
+	{
+		cgamode = HERCULES720_MODE;
+		//adjustherculesaspect = true;
+	}		
 	if (MS_CheckParm ("hercules"))
 	{
-		cgamode = HERCULES_MODE;
-		adjustherculesaspect = true;
+		cgamode = HERCULES640_MODE;
+		//adjustherculesaspect = true;
 	}		
+	if (MS_CheckParm("wide"))
+	{
+		usewiderendering = true;
+	}
+
 
 	MM_Startup ();                  // so the signon screen can be freed
 
@@ -1359,9 +1370,16 @@ close(profilehandle);
 
 boolean SetViewSize (unsigned width, unsigned height)
 {
-	weaponviewheight = (height&~1)+1;
+	if(usewiderendering)
+	{
+		weaponviewheight = ((height >> 1)&~1)+1;
+	}
+	else
+	{
+		weaponviewheight = (height&~1)+1;
+	}
 
-	if(cgamode == HERCULES_MODE && adjustherculesaspect)
+	if(cgamode == HERCULES720_MODE && adjustherculesaspect)
 	{
 		height += height >> 1;
 		height = height&~7;
@@ -1374,9 +1392,13 @@ boolean SetViewSize (unsigned width, unsigned height)
 	screenofs = ((200-STATUSLINES-viewheight)/2*SCREENWIDTH+(320-viewwidth)/8);
 	cgascreenofs = ((200-STATUSLINES-viewheight)/4*SCREENWIDTH+(320-viewwidth)/8);
 	
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES720_MODE)
 	{
 		screenofs = ((348-STATUSLINES-viewheight)/8*linewidth+(360-viewwidth)/8);
+	}
+	else if(cgamode == HERCULES640_MODE)
+	{
+		screenofs = ((200-STATUSLINES-viewheight)/4*linewidth+(320-viewwidth)/8);
 	}
 //
 // calculate trace angles and projection constants
@@ -1451,7 +1473,7 @@ void Quit (char *error)
 	ClearMemory ();
 
 	// TODO : Fix me 
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE)
 	{
 		ShutdownId ();
 		clrscr();

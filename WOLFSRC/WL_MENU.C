@@ -112,11 +112,11 @@ MenuColors far menucolors[] =
 		0x0000,		// backcolor
 		0xeeee,		// signonfill
 	},
-	// HERCULES_MODE,
+	// HERCULES720_MODE,
 	{
 		0x2aa2,		// bordcolor
 		0x2aa2,		// bordcolor2
-		0x4444,		// bkgdcolor
+		0,//0x2288,		// bkgdcolor
 		0x0000,		// stripe
 		0x5555,		// readcolor
 		0xaaaa,		// readhcolor
@@ -124,9 +124,26 @@ MenuColors far menucolors[] =
 		0xffff,		// textcolor		
 		0xffff,		// highlight
 		0x5555,		// viewportborder
-		0x0000,		// viewporthighlight
+		0xffff,		// viewporthighlight
 		0x5555,		// pg13bg
-		0x0000,		// backcolor
+		0xffff,		// backcolor
+		0xffff,		// signonfill
+	},
+	// HERCULES640_MODE,
+	{
+		0x2aa2,		// bordcolor
+		0x2aa2,		// bordcolor2
+		0,//0x2288,		// bkgdcolor
+		0x0000,		// stripe
+		0x5555,		// readcolor
+		0xaaaa,		// readhcolor
+		0x0000,		// viewcolor	
+		0xffff,		// textcolor		
+		0xffff,		// highlight
+		0x5555,		// viewportborder
+		0xffff,		// viewporthighlight
+		0x5555,		// pg13bg
+		0xffff,		// backcolor
 		0xffff,		// signonfill
 	},
 };

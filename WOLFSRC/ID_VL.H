@@ -87,7 +87,8 @@ typedef enum
 	CGA_COMPOSITE_MODE,
 	CGA_INVERSE_MONO,
 	TANDY_MODE,
-	HERCULES_MODE
+	HERCULES720_MODE,
+	HERCULES640_MODE
 } cgamode_t;
 
 //===========================================================================

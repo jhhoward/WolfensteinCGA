@@ -1104,6 +1104,7 @@ extern	int			maxscale,maxscaleshl2;
 
 extern	boolean	insetupscaling;
 extern	boolean		adjustherculesaspect;
+extern	boolean		usewiderendering;
 
 void SetupScaling (int maxscaleheight);
 void ScaleShape (int xcenter, int shapenum, unsigned height);
