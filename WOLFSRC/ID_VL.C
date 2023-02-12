@@ -306,7 +306,7 @@ void VL_SetLineWidth (unsigned width)
 	}
 	
 	offset = 0;
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES_MODE || cgamode == TANDY_320_MODE)
 	{
 		for (i=0;i<MAXSCANLINES;i+=4)
 		{
@@ -872,7 +872,7 @@ void VL_Hlin (unsigned x, unsigned y, unsigned width, unsigned color)
 	byte mask;
 	byte colorwrite = (byte) color;
 	
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES_MODE || cgamode == TANDY_320_MODE)
 	{
 		dest = MK_FP(activebackbufferseg,yinterlacelookup[y]+(x>>2) + bufferofs);
 	}
@@ -941,7 +941,7 @@ void VL_Vlin (int x, int y, int height, int color)
 	andmask = writemask ^ 0xff;
 	writemask &= (byte) color;
 	
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES_MODE || cgamode == TANDY_320_MODE)
 	{
 		x >>= 2;
 
@@ -1035,7 +1035,7 @@ void VL_Bar (int x, int y, int width, int height, int color)
 	
 	while(height--)
 	{
-		if(cgamode == HERCULES_MODE)
+		if(cgamode == HERCULES_MODE || cgamode == TANDY_320_MODE)
 		{
 			dest = MK_FP(activebackbufferseg,yinterlacelookup[y]+(x>>2) + bufferofs);
 		}
@@ -1156,7 +1156,7 @@ void VL_MemToScreen (byte far *source, int width, int height, int x, int y)
 	dest = MK_FP(cgabackbufferseg,ylookup[y]+(x>>2) );
 	//mask = 1 << (x&3);
 
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES_MODE || cgamode == TANDY_320_MODE)
 	{
 #if 1
 		unsigned seg = activebackbufferseg;
@@ -1533,10 +1533,25 @@ void VL_SetCGAMode(void)
 		VL_SetLineWidth (40);
 		break;
 		
-		case TANDY_MODE:
+		case TANDY_160_MODE:
 		asm mov ax, 0x0008
 		asm int 0x10
 		VL_SetLineWidth (40);
+		break;
+
+		case TANDY_320_MODE:
+		asm mov ax, 0x0009
+		asm int 0x10
+		VL_SetLineWidth (80);
+		activebackbufferseg = 0xb800;
+		outportb(0x03DF, 0xc6);
+		_fmemset(MK_FP(activebackbufferseg, 0), 0, 0x8000);
+		outportb(0x03DF, 0xf0);
+		_fmemset(MK_FP(activebackbufferseg, 0), 0, 0x8000);
+		outportb(0x03DF, 0xc6);
+		_fmemset(MK_FP(activebackbufferseg, 0), 0, 0x8000);
+		outportb(0x03DF, 0xf0);
+		_fmemset(MK_FP(activebackbufferseg, 0), 0, 0x8000);
 		break;
 		
 		case HERCULES_MODE:
@@ -1566,13 +1581,12 @@ void VL_SetCGAMode(void)
 	
 	MM_GetPtr (&cgabackbuffer,0x8000);
 	cgabackbufferseg = FP_SEG(cgabackbuffer);
+	_fmemset(cgabackbuffer, 0, 0x8000);
 
-	if(cgamode != HERCULES_MODE)
+	if(!activebackbufferseg)
 	{
 		activebackbufferseg = cgabackbufferseg;
 	}
-	
-	_fmemset(cgabackbuffer, 0, 0x8000);
 }
 
 void VL_PageFlip(boolean copyonflip)
@@ -1599,12 +1613,31 @@ void VL_PageFlip(boolean copyonflip)
 			}
 		}
 		break;
+		case TANDY_320_MODE:
+		{
+			static int flip = 0;
+			flip = !flip;
+			
+			if(flip)
+			{
+				outportb(0x03DF, 0xf0);
+				//activebackbufferseg = 0xb800;
+			}
+			else
+			{
+				outportb(0x03DF, 0xc6);
+				//activebackbufferseg = 0xa000;
+			}
+		}
+		break;
+		default:
+		break;
 	}
 }
 
 void VL_BlitCGA(void)
 {
-	if(cgamode == HERCULES_MODE) return;
+	if(cgamode == HERCULES_MODE || cgamode == TANDY_320_MODE) return;
 
 	#if 1
 	asm mov dx, 100
@@ -1665,7 +1698,8 @@ void VL_TintColor(byte color)
 		break;
 		
 		case CGA_MODE4:
-		case TANDY_MODE:
+		case TANDY_160_MODE:
+		case TANDY_320_MODE:
 		color |= 0x10;
 		asm mov ax, 0x0b00
 		asm mov bh, 0

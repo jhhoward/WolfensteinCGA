@@ -545,7 +545,7 @@ nextpix:
 ;	inc	ax
 ;#else
 	; For CGA step 4 pixels at a time
-	add ax, 4
+	add ax, 2
 ;#endif
 	mov	[pixx],ax
 	cmp	ax,[viewwidth]

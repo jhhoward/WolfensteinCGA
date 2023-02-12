@@ -483,7 +483,7 @@ heightok:
 	asm	mov	bx,[postx]
 	asm	mov	di,bx
 	asm	shr	di,1						// X in bytes
-	asm	shr	di,1						// 
+	//asm	shr	di,1						// 
 	asm	add	di,[screenofs]
 
 	asm	lds	si,DWORD PTR [postsource]
@@ -1020,7 +1020,9 @@ t_floorcolors floorcolors[] =
 	{	0x5555,	0x5555,	0x8888,	0x8888 },
 	// CGA_INVERSE_MONO,
 	{	0x5555,	0xaaaa,	0xdddd,	0x7777 },
-	// TANDY_MODE
+	// TANDY_160_MODE
+	{	0x8888,	0x8888,	0x8080,	0x0808 },
+	// TANDY_320_MODE
 	{	0x8888,	0x8888,	0x8080,	0x0808 },
 	// HERCULES_MODE,
 	{	0x5555,	0xaaaa,	0x2222,	0x8888 },
@@ -1609,6 +1611,145 @@ void HerculesClearScreen()
 	asm	jnz	bottomloop4
 }
 
+void TandyClearScreen()
+{
+	unsigned ceiling1 = floorcolors[cgamode].ceiling1, ceiling2 = floorcolors[cgamode].ceiling2;
+	unsigned floor1 = floorcolors[cgamode].floor1, floor2 = floorcolors[cgamode].floor2;
+	
+	_fmemset(MK_FP(activebackbufferseg, 0), 0, 0x8000);
+	
+	//
+	// clear the screen
+	//
+	asm	mov	dx,[linewidth]
+	asm	mov	ax,[viewwidth]
+	asm mov cl, 1
+	asm	shr	ax,cl
+	asm	sub	dx,ax					// dx = 80-viewwidth/2
+
+	asm	mov	bx,[viewwidth]
+	asm mov cl,2
+	asm	shr	bx,cl					// bl = viewwidth/4
+
+	// First bank
+	asm	mov	es,[activebackbufferseg]
+	asm	mov	di,[screenofs]
+
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [ceiling1] 
+
+	toploop1:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	toploop1
+	
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [floor1] 
+
+	bottomloop1:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	bottomloop1
+
+	// Second bank
+	asm mov ax,[activebackbufferseg]
+	asm add ax,0x200
+	asm	mov	es,ax
+	asm	mov	di,[screenofs]
+
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [ceiling2] 
+
+	toploop2:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	toploop2
+	
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [floor2] 
+
+	bottomloop2:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	bottomloop2
+
+	// Third bank
+	asm mov ax,[activebackbufferseg]
+	asm add ax,0x400
+	asm	mov	es,ax
+	asm	mov	di,[screenofs]
+
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [ceiling1] 
+
+	toploop3:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	toploop3
+	
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [floor1] 
+
+	bottomloop3:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	bottomloop3
+	
+	// Fourth bank
+	asm mov ax,[activebackbufferseg]
+	asm add ax,0x600
+	asm	mov	es,ax
+	asm	mov	di,[screenofs]
+
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [ceiling2] 
+
+	toploop4:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	toploop4
+	
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,3
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [floor2] 
+
+	bottomloop4:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	bottomloop4
+}
+
 void CGABlit()
 {
 	BEGIN_PROFILE(PROF_CGABLIT)
@@ -1695,6 +1836,10 @@ asm	rep stosw
 	{
 		HerculesClearScreen();
 	}
+	else if(cgamode == TANDY_320_MODE)
+	{
+		TandyClearScreen();
+	}
 	else
 	{
 		CGAClearScreen();
@@ -1715,7 +1860,7 @@ asm	rep stosw
 // show screen and time last cycle
 //
 
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES_MODE || cgamode == TANDY_320_MODE)
 	{
 		VL_PageFlip(false);
 	}

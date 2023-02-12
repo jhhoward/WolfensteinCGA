@@ -886,7 +886,8 @@ void CAL_SetupGrFile (void)
 		memcpy(gheadname, "COM", 3);
 		memcpy(gfilename, "COM", 3);
 		break;
-		case TANDY_MODE:
+		case TANDY_160_MODE:
+		case TANDY_320_MODE:
 		memcpy(gheadname, "TGA", 3);
 		memcpy(gfilename, "TGA", 3);
 		break;

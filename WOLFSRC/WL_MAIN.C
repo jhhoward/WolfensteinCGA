@@ -765,8 +765,11 @@ void SignonScreen (void)                        // VGA version
 			case CGA_COMPOSITE_MODE:
 			VL_MemToScreen (&introscn + 16000,320,200,0,0);
 			break;
-			case TANDY_MODE:
+			case TANDY_160_MODE:
 			VL_MemToScreen (&introscn + 32000,320,200,0,0);
+			break;
+			case TANDY_320_MODE:
+			//VL_MemToScreen (&introscn + 32000,320,200,0,0);
 			break;
 			case CGA_INVERSE_MONO:
 			VL_MemToScreen (&introscn + 48000,320,200,0,0);
@@ -1214,9 +1217,13 @@ void InitGame (void)
 	{
 		cgamode = CGA_MODE4;
 	}		
-	if (MS_CheckParm ("tandy"))
+	if (MS_CheckParm ("tandy160"))
 	{
-		cgamode = TANDY_MODE;
+		cgamode = TANDY_160_MODE;
+	}		
+	if (MS_CheckParm ("tandy320"))
+	{
+		cgamode = TANDY_320_MODE;
 	}		
 	if (MS_CheckParm ("lcd"))
 	{

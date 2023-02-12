@@ -496,7 +496,8 @@ PML_OpenPageFile(void)
 		case CGA_COMPOSITE_MODE:
 		PageFileName[0] = 'X';
 		break;
-		case TANDY_MODE:
+		case TANDY_160_MODE:
+		case TANDY_320_MODE:
 		PageFileName[0] = 'T';
 		break;
 		case CGA_INVERSE_MONO:

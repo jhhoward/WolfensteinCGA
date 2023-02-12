@@ -95,7 +95,24 @@ MenuColors far menucolors[] =
 		0x0000,		// backcolor
 		0xffff,		// signonfill
 	},
-	// TANDY_MODE
+	// TANDY_160_MODE
+	{
+		0x4cc4,		// bordcolor
+		0x4cc4,		// bordcolor2
+		0x4444,		// bkgdcolor
+		0x0000,		// stripe
+		0x5555,		// readcolor
+		0xaaaa,		// readhcolor
+		0x3333,		// viewcolor	
+		0x7777,		// textcolor		
+		0xffff,		// highlight
+		0x3333,		// viewportborder
+		0xbbbb,		// viewporthighlight
+		0x3333,		// pg13bg
+		0x0000,		// backcolor
+		0xeeee,		// signonfill
+	},
+	// TANDY_320_MODE
 	{
 		0x4cc4,		// bordcolor
 		0x4cc4,		// bordcolor2

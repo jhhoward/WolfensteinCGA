@@ -111,7 +111,7 @@ void VW_DrawPropString (char far *string)
 
 	pixmask = 0xc0 >> ((px & 3) << 1);
 	
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == HERCULES_MODE || cgamode == TANDY_320_MODE)
 	{
 		while ((ch = *string++)!=0)
 		{
@@ -431,7 +431,10 @@ void VWB_DrawPicDirectToScreen (int x, int y, int chunknum)
 	unsigned off;
 	byte far* source = grsegs[chunknum];
 	
-	if(cgamode == HERCULES_MODE)
+	if(cgamode == TANDY_320_MODE)
+	{
+	}
+	else if(cgamode == HERCULES_MODE)
 	{
 		unsigned quarterheight;
 		width = pictable[picnum].width >> 2;
@@ -764,7 +767,8 @@ noxor:
 		case CGA_COMPOSITE_MODE:
 		fizzlecolor = 0x4;
 		break;
-		case TANDY_MODE:
+		case TANDY_160_MODE:
+		case TANDY_320_MODE:
 		fizzlecolor = 0x4;
 		break;
 		case CGA_INVERSE_MONO:

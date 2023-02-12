@@ -84,7 +84,8 @@ void SetupScaling (int maxscaleheight)
 		case CGA_INVERSE_MONO:
 		dithershift = 3;
 		break;
-		case TANDY_MODE:
+		case TANDY_160_MODE:
+		case TANDY_320_MODE:
 		case CGA_COMPOSITE_MODE:
 		dithershift = 4;
 		break;
@@ -269,12 +270,18 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 				*code++ = 0x88;
 				*code++ = 0x85;
 				
-				if(cgamode == HERCULES_MODE)
+				if(cgamode == HERCULES_MODE || cgamode == TANDY_320_MODE)
 				{
 					int planeoffset = (pix & 3) * 0x2000;
 					int pixline = pix >> 2;
 					*((unsigned far *)code)++ = planeoffset + pixline*linewidth;
 				}
+				/*else if(cgamode == TANDY_320_MODE)
+				{
+					int planeoffset = (pix & 3) * 0x2000;
+					int pixline = pix >> 2;
+					*((unsigned far *)code)++ = planeoffset + pixline*linewidth;
+				}*/
 				else
 				{
 					*((unsigned far *)code)++ = pix*linewidth;
@@ -298,7 +305,7 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 				*code++ = 0x88;
 				*code++ = 0x85;
 
-				if(cgamode == HERCULES_MODE)
+				if(cgamode == HERCULES_MODE || cgamode == TANDY_320_MODE)
 				{
 					int planeoffset = (pix & 3) * 0x2000;
 					int pixline = pix >> 2;
@@ -331,7 +338,7 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 					*code++ = 0x26;
 					*code++ = 0x88;
 					*code++ = 0x85;
-					if(cgamode == HERCULES_MODE)
+					if(cgamode == HERCULES_MODE || cgamode == TANDY_320_MODE)
 					{
 						int planeoffset = (pix & 3) * 0x2000;
 						int pixline = pix >> 2;
@@ -537,7 +544,7 @@ asm	mov bp,WORD PTR [linecmds]
 asm	mov	bx,[slinex]
 asm	mov	di,bx
 asm	shr	di,1						// X in bytes
-asm	shr	di,1						//
+//asm	shr	di,1						//
 asm	add	di,[screenofs]
 asm	mov	ds,WORD PTR [linecmds+2]
 
@@ -819,7 +826,7 @@ void ScaleShape (int xcenter, int shapenum, unsigned height)
 		while(slinewidth-- && slinex >= 0)
 		{
 			slinex--;
-			if(slinex < viewwidth && !(slinex & 3))
+			if(slinex < viewwidth && !(slinex & 1))
 			{
 				if (wallheight[slinex] < height)
 				{
@@ -855,7 +862,7 @@ void ScaleShape (int xcenter, int shapenum, unsigned height)
 
 		while(slinewidth-- && slinex<viewwidth)
 		{
-			if(slinex >= 0 && !(slinex & 3) && wallheight[slinex] < height)
+			if(slinex >= 0 && !(slinex & 1) && wallheight[slinex] < height)
 			{
 				ScaleLine();
 			}
@@ -993,7 +1000,7 @@ void SimpleScaleShape (int xcenter, int shapenum, unsigned height)
 		while(slinewidth--)
 		{
 			slinex--;
-			if(!(slinex & 0x3))
+			if(!(slinex & 0x1))
 				ScaleLine ();
 		}		
 	}
@@ -1024,7 +1031,7 @@ void SimpleScaleShape (int xcenter, int shapenum, unsigned height)
 
 		while(slinewidth--)
 		{
-			if(!(slinex & 0x3))
+			if(!(slinex & 0x1))
 				ScaleLine ();
 			slinex++;
 		}
