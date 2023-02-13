@@ -266,7 +266,7 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 				*code++ = 0x88;
 				*code++ = 0x85;
 				
-				if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE)
+				if(cgamode == HERCULES720_MODE)
 				{
 					int planeoffset = (pix & 3) * 0x2000;
 					int pixline = pix >> 2;
@@ -274,9 +274,14 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 				}
 				else if(cgamode == HERCULES640_MODE)
 				{
-					int planeoffset = (pix & 1) * 0x2000;
+					int planeoffset = (pix & 1) * 0x4000;
 					int pixline = pix >> 1;
-					*((unsigned far *)code)++ = planeoffset + pixline*linewidth;
+					int writeLocation = planeoffset + pixline*linewidth;
+					*((unsigned far *)code)++ = writeLocation;
+					*code++ = 0x26;
+					*code++ = 0x88;
+					*code++ = 0x85;
+					*((unsigned far *)code)++ = writeLocation + 0x2000;
 				}
 				else
 				{
@@ -309,9 +314,14 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 				}
 				else if(cgamode == HERCULES640_MODE)
 				{
-					int planeoffset = (pix & 1) * 0x2000;
+					int planeoffset = (pix & 1) * 0x4000;
 					int pixline = pix >> 1;
-					*((unsigned far *)code)++ = planeoffset + pixline*linewidth;
+					int writeLocation = planeoffset + pixline*linewidth;
+					*((unsigned far *)code)++ = writeLocation;
+					*code++ = 0x26;
+					*code++ = 0x88;
+					*code++ = 0x85;
+					*((unsigned far *)code)++ = writeLocation + 0x2000;
 				}
 				else
 				{
@@ -348,9 +358,14 @@ unsigned BuildCompScale (int height, memptr *finalspot)
 					}
 					else if(cgamode == HERCULES640_MODE)
 					{
-						int planeoffset = (pix & 1) * 0x2000;
+						int planeoffset = (pix & 1) * 0x4000;
 						int pixline = pix >> 1;
-						*((unsigned far *)code)++ = planeoffset + pixline*linewidth;
+						int writeLocation = planeoffset + pixline*linewidth;
+						*((unsigned far *)code)++ = writeLocation;
+						*code++ = 0x26;
+						*code++ = 0x88;
+						*code++ = 0x85;
+						*((unsigned far *)code)++ = writeLocation + 0x2000;
 					}
 					else
 					{

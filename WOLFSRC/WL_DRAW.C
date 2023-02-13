@@ -1635,7 +1635,7 @@ void Hercules640ClearScreen()
 
 	asm	mov	bh,BYTE PTR [viewheight]
 	asm mov cl,2
-	asm	shr	bh,cl					// 1/4 height
+	asm	shr	bh,cl					// 1/8 height
 	asm	mov	ax, [ceiling1] 
 
 	toploop1:
@@ -1647,7 +1647,7 @@ void Hercules640ClearScreen()
 	
 	asm	mov	bh,BYTE PTR [viewheight]
 	asm mov cl,2
-	asm	shr	bh,cl					// 1/4 height
+	asm	shr	bh,cl					// 1/8 height
 	asm	mov	ax, [floor1] 
 
 	bottomloop1:
@@ -1665,7 +1665,7 @@ void Hercules640ClearScreen()
 
 	asm	mov	bh,BYTE PTR [viewheight]
 	asm mov cl,2
-	asm	shr	bh,cl					// 1/4 height
+	asm	shr	bh,cl					// 1/8 height
 	asm	mov	ax, [ceiling2] 
 
 	toploop2:
@@ -1677,7 +1677,7 @@ void Hercules640ClearScreen()
 	
 	asm	mov	bh,BYTE PTR [viewheight]
 	asm mov cl,2
-	asm	shr	bh,cl					// 1/4 height
+	asm	shr	bh,cl					// 1/8 height
 	asm	mov	ax, [floor2] 
 
 	bottomloop2:
@@ -1686,6 +1686,66 @@ void Hercules640ClearScreen()
 	asm	add	di,dx
 	asm	dec	bh
 	asm	jnz	bottomloop2
+
+	// Third bank
+	asm mov ax,[activebackbufferseg]
+	asm add ax,0x400
+	asm	mov	es,ax
+	asm	mov	di,[screenofs]
+
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,2
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [ceiling1] 
+
+	toploop3:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	toploop3
+	
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,2
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [floor1] 
+
+	bottomloop3:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	bottomloop3
+	
+	// Fourth bank
+	asm mov ax,[activebackbufferseg]
+	asm add ax,0x600
+	asm	mov	es,ax
+	asm	mov	di,[screenofs]
+
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,2
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [ceiling2] 
+
+	toploop4:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	toploop4
+	
+	asm	mov	bh,BYTE PTR [viewheight]
+	asm mov cl,2
+	asm	shr	bh,cl					// 1/8 height
+	asm	mov	ax, [floor2] 
+
+	bottomloop4:
+	asm	mov	cl,bl
+	asm	rep	stosw
+	asm	add	di,dx
+	asm	dec	bh
+	asm	jnz	bottomloop4
 
 }
 

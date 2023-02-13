@@ -431,7 +431,7 @@ void VWB_DrawPicDirectToScreen (int x, int y, int chunknum)
 	unsigned off;
 	byte far* source = grsegs[chunknum];
 	
-	if(cgamode == HERCULES720_MODE || cgamode == HERCULES640_MODE)
+	if(cgamode == HERCULES720_MODE)
 	{
 		width = pictable[picnum].width >> 2;
 		height = pictable[picnum].height;
@@ -439,43 +439,25 @@ void VWB_DrawPicDirectToScreen (int x, int y, int chunknum)
 		while(height--)
 		{
 			off = yinterlacelookup[y++]+x+bufferofs;
-			buffer = MK_FP(0xb000,off);
-			_fmemcpy (buffer,source,width);
-			buffer = MK_FP(0xb800,off);
-			_fmemcpy (buffer,source,width);
+			_fmemcpy (MK_FP(0xb000,off),source,width);
+			_fmemcpy (MK_FP(0xb800,off),source,width);
 			source+=width;
 		}
-
-		/*
-		unsigned quarterheight;
+	}
+	else if(cgamode == HERCULES640_MODE)
+	{
 		width = pictable[picnum].width >> 2;
 		height = pictable[picnum].height;
-		quarterheight = height >> 2;
-		off = ylookup[y >> 2]+x+bufferofs;
-
-		buffer = MK_FP(0xb000, off);
-			
-		while(quarterheight--)
+		
+		while(height--)
 		{
-			_fmemcpy (buffer,source,width);
-			_fmemcpy (buffer+0x8000,source,width);
+			off = yinterlacelookup[y++]+x+bufferofs;
+			_fmemcpy (MK_FP(0xb000,off),source,width);
+			_fmemcpy (MK_FP(0xb200,off),source,width);
+			_fmemcpy (MK_FP(0xb800,off),source,width);
+			_fmemcpy (MK_FP(0xba00,off),source,width);
 			source+=width;
-
-			_fmemcpy (buffer+0x2000,source,width);
-			_fmemcpy (buffer+0xa000,source,width);
-			source+=width;
-
-			_fmemcpy (buffer+0x4000,source,width);
-			_fmemcpy (buffer+0xc000,source,width);
-			source+=width;
-
-			_fmemcpy (buffer+0x6000,source,width);
-			_fmemcpy (buffer+0xe000,source,width);
-			source+=width;
-
-			buffer+=linewidth;
 		}
-		*/
 	}
 	else
 	{

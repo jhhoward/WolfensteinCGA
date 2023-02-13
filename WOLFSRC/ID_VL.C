@@ -317,6 +317,15 @@ void VL_SetLineWidth (unsigned width)
 			offset += linewidth;
 		}
 	}
+	else if(cgamode == HERCULES640_MODE)
+	{
+		for (i=0;i<MAXSCANLINES;i+=2)
+		{
+			yinterlacelookup[i]=offset;
+			yinterlacelookup[i+1]=offset+0x4000;
+			offset += linewidth;
+		}
+	}
 	else
 	{
 		for (i=0;i<MAXSCANLINES;i+=2)
@@ -1566,7 +1575,7 @@ void VL_SetCGAMode(void)
 		case HERCULES640_MODE:
 		{
 			// graphics mode CRTC register values
-			static byte graphicsMode640CRTC[] = { 0x34, 0x28, 0x2A, 0x47, 0x69, 0x00, 0x64, 0x65, 0x02, 0x01 };
+			static byte graphicsMode640CRTC[] = { 0x34, 0x28, 0x2A, 0x47, 0x69, 0x00, 0x64, 0x65, 0x02, 0x03 };
 			int i;
 
 			outportb(0x03BF, 0x03);
@@ -1620,6 +1629,11 @@ void VL_PageFlip(boolean copyonflip)
 			
 			if(copyonflip)
 			{
+				if(cgamode == HERCULES640_MODE)
+				{
+					_fmemcpy(MK_FP(frontbufferseg, 0x2000), MK_FP(frontbufferseg, 0), 0x2000);
+					_fmemcpy(MK_FP(frontbufferseg, 0x6000), MK_FP(frontbufferseg, 0x4000), 0x2000);
+				}
 				_fmemcpy(MK_FP(activebackbufferseg, 0), MK_FP(frontbufferseg, 0), 0x8000);
 			}
 		}
