@@ -186,6 +186,11 @@ void ReadConfig(void)
 		viewsize = 15;
 		mouseadjustment=5;
 	}
+	
+	if (MS_CheckParm ("pcspeaker"))
+	{
+		sds = sds_PC;
+	}
 
 	SD_SetMusicMode (sm);
 	SD_SetSoundMode (sd);

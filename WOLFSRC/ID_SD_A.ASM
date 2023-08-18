@@ -60,22 +60,24 @@ DATASEG
 count_time	dw	?
 count_fx	dw	?
 
-pcdtab	db	00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b
-		db	00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b
-		db	00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b
-		db	00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b
-		db	00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b
-		db	00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b
-		db	00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b
-		db	00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b,00b
-		db	10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b
-		db	10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b
-		db	10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b
-		db	10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b
-		db	10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b
-		db	10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b
-		db	10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b
-		db	10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b,10b
+; Table converts an 8 bit sample ampltiude to pulse width for 7000Hz PC speaker PWM output
+pwmtab	dw	0, 2, 5, 7, 10, 12, 15, 18, 20, 23, 25, 28, 30, 33, 36, 38
+		dw	41, 43, 46, 48, 51, 54, 56, 59, 61, 64, 66, 69, 72, 74, 77, 79
+		dw	82, 85, 87, 90, 92, 95, 97, 100, 103, 105, 108, 110, 113, 115, 118, 121
+		dw	123, 126, 128, 131, 133, 136, 139, 141, 144, 146, 149, 151, 154, 157, 159, 162
+		dw	164, 167, 170, 172, 175, 177, 180, 182, 185, 188, 190, 193, 195, 198, 200, 203
+		dw	206, 208, 211, 213, 216, 218, 221, 224, 226, 229, 231, 234, 236, 239, 242, 244
+		dw	247, 249, 252, 255, 257, 260, 262, 265, 267, 270, 273, 275, 278, 280, 283, 285
+		dw	288, 291, 293, 296, 298, 301, 303, 306, 309, 311, 314, 316, 319, 321, 324, 327
+		dw	329, 332, 334, 337, 340, 342, 345, 347, 350, 352, 355, 358, 360, 363, 365, 368
+		dw	370, 373, 376, 378, 381, 383, 386, 388, 391, 394, 396, 399, 401, 404, 406, 409
+		dw	412, 414, 417, 419, 422, 425, 427, 430, 432, 435, 437, 440, 443, 445, 448, 450
+		dw	453, 455, 458, 461, 463, 466, 468, 471, 473, 476, 479, 481, 484, 486, 489, 491
+		dw	494, 497, 499, 502, 504, 507, 510, 512, 515, 517, 520, 522, 525, 528, 530, 533
+		dw	535, 538, 540, 543, 546, 548, 551, 553, 556, 558, 561, 564, 566, 569, 571, 574
+		dw	576, 579, 582, 584, 587, 589, 592, 595, 597, 600, 602, 605, 607, 610, 613, 615
+		dw	618, 620, 623, 625, 628, 631, 633, 636, 638, 641, 643, 646, 649, 651, 654, 656
+
 
 
 ;============================================================================
@@ -313,17 +315,26 @@ extreme		dw	?
 	or	ax,di
 	jz	@@donereg					; nil pointer
 
-	mov	bl,[es:di]					; Get the byte
+	mov	bl,[es:di]					; Get the sample byte
 	inc	[WORD PTR pcSound]			; Increment pointer
 
-	and	bl,11100000b				; Nuke some of the precision (DEBUG - do this in the table)
-
 	xor	bh,bh
-	mov	ah,[pcdtab+bx]				; Translate the byte
+	shl bx,1
+	mov	bx,[pwmtab+bx]				; Load the word for pulse width from the look up table
 
 	in	al,pcSpeaker
-	and	al,11111100b
-	or	al,ah
+	and al,0fch
+	or	al,02h						; Set PC speaker on but close timer 2 gate
+	out	pcSpeaker,al
+		
+	; Set timer 2 frequency
+	mov al, bl
+	out pcTimer, al		
+	mov al, bh
+	out pcTimer, al
+	
+	in	al,pcSpeaker
+	or	al,03h						; Set the PC speaker on and trigger timer 2 gate
 	out	pcSpeaker,al
 
 	dec	[pcLengthLeft]
@@ -333,8 +344,8 @@ extreme		dw	?
 	mov	[WORD PTR pcSound+2],0
 
 	in	al,pcSpeaker
-	and	al,11111100b
-	out	pcSpeaker,al
+	and al,0fch
+	out	pcSpeaker,al			; Disable PC speaker
 
 	call SDL_DigitizedDone
 
